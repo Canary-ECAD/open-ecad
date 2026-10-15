@@ -1,0 +1,37 @@
+name: 💡 Feature request / design proposal
+description: A capability or a domain-model decision you want to argue for
+title: "[rfc]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Design proposals are welcome — that's the language this project speaks.
+        If it changes concepts, mention the affected section of `MAPA-DOMINIO.md`.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is missing, and why does it matter?
+      description: The engineering use case first (schematic reality), not the feature name.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Domain model impact, APIs, phases (v1/v2/v3) it belongs to.
+  - type: textarea
+    id: provenance
+    attributes:
+      label: Sources (public only)
+      description: >
+        Standards (IEC/ISO numbers), public documentation, or "my own design".
+        Vendor-proprietary material must NOT be attached or pasted — see the
+        clean-room pledge in CONTRIBUTING.md.
+  - type: checkboxes
+    id: pledge
+    attributes:
+      label: Clean-room pledge
+      options:
+        - label: I confirm this proposal contains no proprietary assets, exports, or reverse-engineered content.
+          required: true

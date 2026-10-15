@@ -1,0 +1,47 @@
+name: 🐛 Bug report
+description: Something doesn't work as documented
+title: "[bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        open-ecad is in **design phase**. If your "bug" is really a design disagreement,
+        open a [discussion](https://github.com/Canary-ECAD/open-ecad/discussions) instead —
+        those debates shape `MAPA-DOMINIO.md`.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Actual vs expected behavior. Include the command and the output.
+      placeholder: |
+        $ cargo test --workspace
+        ... fails with ...
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Minimal steps or code snippet someone else can run.
+      value: |
+        1.
+        2.
+        3.
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: OS, `cargo --version`, commit SHA (`git rev-parse HEAD`).
+      render: shell
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Domain model (open-ecad-core)
+        - Build / CI
+        - Documentation
+        - Other

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 💬 Question or design discussion
+    url: https://github.com/Canary-ECAD/open-ecad/discussions
+    about: How things work, why the map chose X, "is this coming in v1?" — start here.
+  - name: 🔒 Security report
+    url: https://github.com/Canary-ECAD/open-ecad/security/policy
+    about: Vulnerabilities in tools or pipelines (private advisory, not a public issue).

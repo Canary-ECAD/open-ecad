@@ -1,0 +1,9 @@
+[package]
+name = "open-ecad-core"
+version = "0.0.0"
+description = "Clean-room domain model for open-ecad — functions, symbols, connections, potentials, device identification (IEC 81346)."
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]

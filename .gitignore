@@ -1,1 +1,12 @@
+# Vendor background reading — NEVER distribute (clean-room pledge, see CONTRIBUTING.md)
 _docs-eplan/
+
+# Rust
+/target
+Cargo.lock
+
+# Editors & OS cruft
+.idea/
+.vscode/
+*.swp
+.DS_Store
