@@ -148,7 +148,15 @@ pub struct Command {
 }
 
 const fn cmd(id: CommandId, menu: Menu, group: u8, label: &'static str) -> Command {
-    Command { id, menu, submenu: None, label, shortcut: None, group, implemented: false }
+    Command {
+        id,
+        menu,
+        submenu: None,
+        label,
+        shortcut: None,
+        group,
+        implemented: false,
+    }
 }
 
 const fn ctrl(key: Key) -> KeyboardShortcut {
@@ -190,7 +198,12 @@ pub static COMMANDS: &[Command] = &[
     cmd(C::Guardar, M::Archivo, 1, "Guardar").sc(ctrl(Key::S)),
     cmd(C::GuardarComo, M::Archivo, 1, "Guardar como…").sc(ctrl_shift(Key::S)),
     cmd(C::CerrarProyecto, M::Archivo, 1, "Cerrar proyecto"),
-    cmd(C::PropiedadesProyecto, M::Archivo, 2, "Propiedades del proyecto"),
+    cmd(
+        C::PropiedadesProyecto,
+        M::Archivo,
+        2,
+        "Propiedades del proyecto",
+    ),
     cmd(C::Imprimir, M::Archivo, 3, "Imprimir…").sc(ctrl(Key::P)),
     cmd(C::ExportarPdf, M::Archivo, 3, "Exportar PDF…"),
     cmd(C::Ajustes, M::Archivo, 4, "Ajustes…"),
@@ -212,61 +225,185 @@ pub static COMMANDS: &[Command] = &[
     cmd(C::AlinearRejilla, M::Editar, 4, "Alinear a la rejilla"),
     cmd(C::TraerDelante, M::Editar, 4, "Traer al frente"),
     cmd(C::EnviarDetras, M::Editar, 4, "Enviar al fondo"),
-    cmd(C::SeleccionarMismoTipo, M::Editar, 5, "Seleccionar los del mismo tipo"),
+    cmd(
+        C::SeleccionarMismoTipo,
+        M::Editar,
+        5,
+        "Seleccionar los del mismo tipo",
+    ),
     // Ver
-    cmd(C::MostrarPanel(PanelKind::Paginas), M::Ver, 0, "Páginas").sub("Paneles").ok(),
-    cmd(C::MostrarPanel(PanelKind::Preview), M::Ver, 0, "Previsualización").sub("Paneles").ok(),
-    cmd(C::MostrarPanel(PanelKind::Insercion), M::Ver, 0, "Inserción").sub("Paneles").ok(),
-    cmd(C::MostrarPanel(PanelKind::Propiedades), M::Ver, 0, "Propiedades").sub("Paneles").ok(),
-    cmd(C::MostrarPanel(PanelKind::Mensajes), M::Ver, 0, "Mensajes").sub("Paneles").ok(),
-    cmd(C::MostrarPanel(PanelKind::PuntosInterrupcion), M::Ver, 0, "Puntos de interrupción")
+    cmd(C::MostrarPanel(PanelKind::Paginas), M::Ver, 0, "Páginas")
         .sub("Paneles")
         .ok(),
-    cmd(C::MostrarPanel(PanelKind::Dispositivos), M::Ver, 0, "Dispositivos").sub("Paneles").ok(),
-    cmd(C::MostrarPanel(PanelKind::Macros), M::Ver, 0, "Macros").sub("Paneles").ok(),
-    cmd(C::AjustarPagina, M::Ver, 1, "Ajustar página").sc(key(Key::Home)).ok(),
+    cmd(
+        C::MostrarPanel(PanelKind::Preview),
+        M::Ver,
+        0,
+        "Previsualización",
+    )
+    .sub("Paneles")
+    .ok(),
+    cmd(
+        C::MostrarPanel(PanelKind::Insercion),
+        M::Ver,
+        0,
+        "Inserción",
+    )
+    .sub("Paneles")
+    .ok(),
+    cmd(
+        C::MostrarPanel(PanelKind::Propiedades),
+        M::Ver,
+        0,
+        "Propiedades",
+    )
+    .sub("Paneles")
+    .ok(),
+    cmd(C::MostrarPanel(PanelKind::Mensajes), M::Ver, 0, "Mensajes")
+        .sub("Paneles")
+        .ok(),
+    cmd(
+        C::MostrarPanel(PanelKind::PuntosInterrupcion),
+        M::Ver,
+        0,
+        "Puntos de interrupción",
+    )
+    .sub("Paneles")
+    .ok(),
+    cmd(
+        C::MostrarPanel(PanelKind::Dispositivos),
+        M::Ver,
+        0,
+        "Dispositivos",
+    )
+    .sub("Paneles")
+    .ok(),
+    cmd(C::MostrarPanel(PanelKind::Macros), M::Ver, 0, "Macros")
+        .sub("Paneles")
+        .ok(),
+    cmd(C::AjustarPagina, M::Ver, 1, "Ajustar página")
+        .sc(key(Key::Home))
+        .ok(),
     cmd(C::Zoom100, M::Ver, 1, "Escala 1:1").ok(),
     cmd(C::Rejilla, M::Ver, 2, "Rejilla").sc(key(Key::F7)).ok(),
-    cmd(C::Snap, M::Ver, 2, "Ajustar a la rejilla (snap)").sc(key(Key::F9)).ok(),
+    cmd(C::Snap, M::Ver, 2, "Ajustar a la rejilla (snap)")
+        .sc(key(Key::F9))
+        .ok(),
     cmd(C::Orto, M::Ver, 2, "Modo orto").sc(key(Key::F8)).ok(),
     cmd(C::PuntosInsercion, M::Ver, 3, "Puntos de inserción"),
     cmd(C::ElementosInvisibles, M::Ver, 3, "Elementos invisibles"),
     cmd(C::SeguimientoRed, M::Ver, 4, "Seguimiento de red"),
-    cmd(C::SeguimientoPotencial, M::Ver, 4, "Seguimiento de potencial"),
-    cmd(C::RestablecerDisposicion, M::Ver, 5, "Restablecer disposición").ok(),
+    cmd(
+        C::SeguimientoPotencial,
+        M::Ver,
+        4,
+        "Seguimiento de potencial",
+    ),
+    cmd(
+        C::RestablecerDisposicion,
+        M::Ver,
+        5,
+        "Restablecer disposición",
+    )
+    .ok(),
     // Insertar
-    cmd(C::Herramienta(Tool::Simbolo), M::Insertar, 0, "Símbolo…").sc(key(Key::Insert)).ok(),
+    cmd(C::Herramienta(Tool::Simbolo), M::Insertar, 0, "Símbolo…")
+        .sc(key(Key::Insert))
+        .ok(),
     cmd(C::Herramienta(Tool::Macro), M::Insertar, 0, "Macro…").ok(),
-    cmd(C::Herramienta(Tool::Linea), M::Insertar, 1, "Línea").sub("Gráfico").ok(),
-    cmd(C::Herramienta(Tool::Rectangulo), M::Insertar, 1, "Rectángulo").sub("Gráfico").ok(),
-    cmd(C::Herramienta(Tool::Circulo), M::Insertar, 1, "Círculo").sub("Gráfico").ok(),
-    cmd(C::Herramienta(Tool::Texto), M::Insertar, 1, "Texto").sc(key(Key::T)).ok(),
+    cmd(C::Herramienta(Tool::Linea), M::Insertar, 1, "Línea")
+        .sub("Gráfico")
+        .ok(),
+    cmd(
+        C::Herramienta(Tool::Rectangulo),
+        M::Insertar,
+        1,
+        "Rectángulo",
+    )
+    .sub("Gráfico")
+    .ok(),
+    cmd(C::Herramienta(Tool::Circulo), M::Insertar, 1, "Círculo")
+        .sub("Gráfico")
+        .ok(),
+    cmd(C::Herramienta(Tool::Texto), M::Insertar, 1, "Texto")
+        .sc(key(Key::T))
+        .ok(),
     cmd(C::Imagen, M::Insertar, 1, "Imagen…"),
     cmd(C::Acotacion, M::Insertar, 1, "Acotación lineal"),
-    cmd(C::PuntoInterrupcion, M::Insertar, 2, "Punto de interrupción"),
-    cmd(C::DefinicionPotencial, M::Insertar, 2, "Definición de potencial"),
+    cmd(
+        C::PuntoInterrupcion,
+        M::Insertar,
+        2,
+        "Punto de interrupción",
+    ),
+    cmd(
+        C::DefinicionPotencial,
+        M::Insertar,
+        2,
+        "Definición de potencial",
+    ),
     cmd(C::Esquina, M::Insertar, 3, "Esquina").sub("Piezas de conexión"),
     cmd(C::NodoT, M::Insertar, 3, "Nodo T").sub("Piezas de conexión"),
     cmd(C::Cruce, M::Insertar, 3, "Cruce").sub("Piezas de conexión"),
-    cmd(C::CorteAutoconexion, M::Insertar, 3, "Corte de autoconexión").sub("Piezas de conexión"),
+    cmd(
+        C::CorteAutoconexion,
+        M::Insertar,
+        3,
+        "Corte de autoconexión",
+    )
+    .sub("Piezas de conexión"),
     // Proyecto
-    cmd(C::NuevaPagina, M::Proyecto, 0, "Nueva página").sc(ctrl_shift(Key::N)).ok(),
-    cmd(C::PaginaAnterior, M::Proyecto, 0, "Página anterior").sc(key(Key::PageUp)).ok(),
-    cmd(C::PaginaSiguiente, M::Proyecto, 0, "Página siguiente").sc(key(Key::PageDown)).ok(),
-    cmd(C::PropiedadesPagina, M::Proyecto, 0, "Propiedades de página"),
-    cmd(C::Estructura, M::Proyecto, 1, "Estructura (identificadores)…"),
+    cmd(C::NuevaPagina, M::Proyecto, 0, "Nueva página")
+        .sc(ctrl_shift(Key::N))
+        .ok(),
+    cmd(C::PaginaAnterior, M::Proyecto, 0, "Página anterior")
+        .sc(key(Key::PageUp))
+        .ok(),
+    cmd(C::PaginaSiguiente, M::Proyecto, 0, "Página siguiente")
+        .sc(key(Key::PageDown))
+        .ok(),
+    cmd(
+        C::PropiedadesPagina,
+        M::Proyecto,
+        0,
+        "Propiedades de página",
+    ),
+    cmd(
+        C::Estructura,
+        M::Proyecto,
+        1,
+        "Estructura (identificadores)…",
+    ),
     cmd(C::Capas, M::Proyecto, 1, "Capas…"),
-    cmd(C::RegenerarConexiones, M::Proyecto, 2, "Regenerar conexiones"),
+    cmd(
+        C::RegenerarConexiones,
+        M::Proyecto,
+        2,
+        "Regenerar conexiones",
+    ),
     // Herramientas
-    cmd(C::MostrarPanel(PanelKind::Mensajes), M::Herramientas, 0, "Mensajes").ok(),
+    cmd(
+        C::MostrarPanel(PanelKind::Mensajes),
+        M::Herramientas,
+        0,
+        "Mensajes",
+    )
+    .ok(),
     cmd(C::Comprobar, M::Herramientas, 0, "Comprobar proyecto (v2)"),
     // Datos
-    cmd(C::BibliotecaSimbolos, M::Datos, 0, "Biblioteca de símbolos…"),
+    cmd(
+        C::BibliotecaSimbolos,
+        M::Datos,
+        0,
+        "Biblioteca de símbolos…",
+    ),
     cmd(C::EditarSimbolo, M::Datos, 0, "Editar símbolo…"),
     cmd(C::CrearMacro, M::Datos, 1, "Crear macro desde selección"),
     cmd(C::Cajetines, M::Datos, 2, "Cajetines y marcos…"),
     // Ayuda
-    cmd(C::PaletaComandos, M::Ayuda, 0, "Paleta de comandos…").sc(ctrl(Key::K)).ok(),
+    cmd(C::PaletaComandos, M::Ayuda, 0, "Paleta de comandos…")
+        .sc(ctrl(Key::K))
+        .ok(),
     cmd(C::AcercaDe, M::Ayuda, 1, "Acerca de open-ecad").ok(),
 ];
 

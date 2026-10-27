@@ -19,5 +19,9 @@ fn main() -> eframe::Result {
             .with_min_inner_size([800.0, 500.0]),
         ..Default::default()
     };
-    eframe::run_native("open-ecad", options, Box::new(|cc| Ok(Box::new(app::OpenEcadApp::new(cc)))))
+    eframe::run_native(
+        "open-ecad",
+        options,
+        Box::new(|cc| Ok(Box::new(app::OpenEcadApp::new(cc)))),
+    )
 }

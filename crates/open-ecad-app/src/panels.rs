@@ -65,7 +65,9 @@ impl PanelKind {
         match self {
             PanelKind::Paginas | PanelKind::Preview => Region::Izquierda,
             PanelKind::Insercion | PanelKind::Macros | PanelKind::Propiedades => Region::Derecha,
-            PanelKind::Mensajes | PanelKind::PuntosInterrupcion | PanelKind::Dispositivos => Region::Abajo,
+            PanelKind::Mensajes | PanelKind::PuntosInterrupcion | PanelKind::Dispositivos => {
+                Region::Abajo
+            }
         }
     }
 }
@@ -154,7 +156,10 @@ impl Viewer<'_> {
             .project
             .pages
             .iter()
-            .filter(|p| filter.is_empty() || fold(&format!("{} {}", p.name(), p.description)).contains(&filter))
+            .filter(|p| {
+                filter.is_empty()
+                    || fold(&format!("{} {}", p.name(), p.description)).contains(&filter)
+            })
             .collect();
 
         let mut clicked = None;
@@ -166,32 +171,38 @@ impl Viewer<'_> {
         };
 
         if list_view {
-            egui::Grid::new("pages_list").striped(true).num_columns(3).show(ui, |ui| {
-                ui.strong("Página");
-                ui.strong("Descripción");
-                ui.strong("Tipo");
-                ui.end_row();
-                for p in &visible {
-                    row(ui, p.name(), p.id);
-                    ui.label(&p.description);
-                    ui.label(&p.kind);
+            egui::Grid::new("pages_list")
+                .striped(true)
+                .num_columns(3)
+                .show(ui, |ui| {
+                    ui.strong("Página");
+                    ui.strong("Descripción");
+                    ui.strong("Tipo");
                     ui.end_row();
-                }
-            });
+                    for p in &visible {
+                        row(ui, p.name(), p.id);
+                        ui.label(&p.description);
+                        ui.label(&p.kind);
+                        ui.end_row();
+                    }
+                });
         } else {
-            CollapsingHeader::new(&self.project.name).default_open(true).show(ui, |ui| {
-                let mut structures: Vec<&str> = visible.iter().map(|p| p.structure.as_str()).collect();
-                structures.dedup();
-                structures.sort_unstable();
-                structures.dedup();
-                for s in structures {
-                    CollapsingHeader::new(s).default_open(true).show(ui, |ui| {
-                        for p in visible.iter().filter(|p| p.structure == s) {
-                            row(ui, format!("{}  {}", p.counter, p.description), p.id);
-                        }
-                    });
-                }
-            });
+            CollapsingHeader::new(&self.project.name)
+                .default_open(true)
+                .show(ui, |ui| {
+                    let mut structures: Vec<&str> =
+                        visible.iter().map(|p| p.structure.as_str()).collect();
+                    structures.dedup();
+                    structures.sort_unstable();
+                    structures.dedup();
+                    for s in structures {
+                        CollapsingHeader::new(s).default_open(true).show(ui, |ui| {
+                            for p in visible.iter().filter(|p| p.structure == s) {
+                                row(ui, format!("{}  {}", p.counter, p.description), p.id);
+                            }
+                        });
+                    }
+                });
         }
 
         if let Some(id) = clicked {
@@ -210,7 +221,10 @@ impl Viewer<'_> {
         };
         let (rect, _) = ui.allocate_exact_size(ui.available_size(), Sense::hover());
         let t = canvas::Transform::fit(rect.shrink(6.0));
-        let settings = ViewSettings { grid_visible: false, ..Default::default() };
+        let settings = ViewSettings {
+            grid_visible: false,
+            ..Default::default()
+        };
         canvas::paint_page(&ui.painter_at(rect), &t, page, &settings, rect);
     }
 
@@ -219,8 +233,16 @@ impl Viewer<'_> {
             ui.selectable_value(&mut self.state.insertion_macros, false, "Símbolos");
             ui.selectable_value(&mut self.state.insertion_macros, true, "Macros");
         });
-        let nav = self.state.navigators.entry(PanelKind::Insercion).or_default();
-        ui.add(TextEdit::singleline(&mut nav.filter).hint_text("Buscar…").desired_width(f32::INFINITY));
+        let nav = self
+            .state
+            .navigators
+            .entry(PanelKind::Insercion)
+            .or_default();
+        ui.add(
+            TextEdit::singleline(&mut nav.filter)
+                .hint_text("Buscar…")
+                .desired_width(f32::INFINITY),
+        );
         let filter = fold(&nav.filter);
         ui.separator();
 
@@ -228,34 +250,50 @@ impl Viewer<'_> {
         if self.state.insertion_macros {
             for (name, kind) in mock::MACROS {
                 if filter.is_empty() || fold(name).contains(&filter) {
-                    let r = ui.selectable_label(self.state.insertion_selected == Some(*name), *name);
+                    let r =
+                        ui.selectable_label(self.state.insertion_selected == Some(*name), *name);
                     if r.on_hover_text(*kind).clicked() {
                         picked = Some((*name, Tool::Macro));
                     }
                 }
             }
         } else {
-            CollapsingHeader::new("IEC 60617 (ejemplo)").default_open(true).show(ui, |ui| {
-                for (group, symbols) in mock::SYMBOL_LIBRARY {
-                    let matches: Vec<_> =
-                        symbols.iter().filter(|s| filter.is_empty() || fold(s).contains(&filter)).collect();
-                    if matches.is_empty() {
-                        continue;
-                    }
-                    CollapsingHeader::new(*group).default_open(!filter.is_empty()).show(ui, |ui| {
-                        for s in matches {
-                            if ui.selectable_label(self.state.insertion_selected == Some(*s), *s).clicked() {
-                                picked = Some((*s, Tool::Simbolo));
-                            }
+            CollapsingHeader::new("IEC 60617 (ejemplo)")
+                .default_open(true)
+                .show(ui, |ui| {
+                    for (group, symbols) in mock::SYMBOL_LIBRARY {
+                        let matches: Vec<_> = symbols
+                            .iter()
+                            .filter(|s| filter.is_empty() || fold(s).contains(&filter))
+                            .collect();
+                        if matches.is_empty() {
+                            continue;
                         }
-                    });
-                }
-            });
+                        CollapsingHeader::new(*group)
+                            .default_open(!filter.is_empty())
+                            .show(ui, |ui| {
+                                for s in matches {
+                                    if ui
+                                        .selectable_label(
+                                            self.state.insertion_selected == Some(*s),
+                                            *s,
+                                        )
+                                        .clicked()
+                                    {
+                                        picked = Some((*s, Tool::Simbolo));
+                                    }
+                                }
+                            });
+                    }
+                });
         }
         if let Some((name, tool)) = picked {
             self.state.insertion_selected = Some(name);
-            self.actions.push(Action::Command(CommandId::Herramienta(tool)));
-            self.actions.push(Action::Status(format!("«{name}»: haz clic en la página para colocarlo (pendiente)")));
+            self.actions
+                .push(Action::Command(CommandId::Herramienta(tool)));
+            self.actions.push(Action::Status(format!(
+                "«{name}»: haz clic en la página para colocarlo (pendiente)"
+            )));
         }
     }
 
@@ -266,68 +304,86 @@ impl Viewer<'_> {
         };
         ui.label(RichText::new(format!("Página {}", page.name())).strong());
         ui.separator();
-        egui::Grid::new("page_props").num_columns(2).spacing([12.0, 6.0]).show(ui, |ui| {
-            ui.label("Estructura");
-            ui.label(&page.structure);
-            ui.end_row();
-            ui.label("Contador");
-            ui.label(page.counter.to_string());
-            ui.end_row();
-            ui.label("Descripción");
-            ui.text_edit_singleline(&mut page.description);
-            ui.end_row();
-            ui.label("Tipo");
-            ui.label(&page.kind);
-            ui.end_row();
-            ui.label("Marco");
-            ui.label("A3 apaisado (ejemplo)");
-            ui.end_row();
-            ui.label("Escala");
-            ui.label("1:1");
-            ui.end_row();
-        });
+        egui::Grid::new("page_props")
+            .num_columns(2)
+            .spacing([12.0, 6.0])
+            .show(ui, |ui| {
+                ui.label("Estructura");
+                ui.label(&page.structure);
+                ui.end_row();
+                ui.label("Contador");
+                ui.label(page.counter.to_string());
+                ui.end_row();
+                ui.label("Descripción");
+                ui.text_edit_singleline(&mut page.description);
+                ui.end_row();
+                ui.label("Tipo");
+                ui.label(&page.kind);
+                ui.end_row();
+                ui.label("Marco");
+                ui.label("A3 apaisado (ejemplo)");
+                ui.end_row();
+                ui.label("Escala");
+                ui.label("1:1");
+                ui.end_row();
+            });
     }
 
     fn interruptions_ui(&mut self, ui: &mut Ui) {
-        let nav = self.state.navigators.entry(PanelKind::PuntosInterrupcion).or_default();
+        let nav = self
+            .state
+            .navigators
+            .entry(PanelKind::PuntosInterrupcion)
+            .or_default();
         navigator_header(ui, nav);
         let filter = fold(&nav.filter);
-        egui::Grid::new("interruptions").striped(true).num_columns(3).show(ui, |ui| {
-            ui.strong("Nombre");
-            ui.strong("Origen");
-            ui.strong("Destinos");
-            ui.end_row();
-            for (name, from, to) in mock::INTERRUPTIONS {
-                if filter.is_empty() || fold(name).contains(&filter) {
-                    ui.label(*name);
-                    ui.label(*from);
-                    ui.label(*to);
-                    ui.end_row();
+        egui::Grid::new("interruptions")
+            .striped(true)
+            .num_columns(3)
+            .show(ui, |ui| {
+                ui.strong("Nombre");
+                ui.strong("Origen");
+                ui.strong("Destinos");
+                ui.end_row();
+                for (name, from, to) in mock::INTERRUPTIONS {
+                    if filter.is_empty() || fold(name).contains(&filter) {
+                        ui.label(*name);
+                        ui.label(*from);
+                        ui.label(*to);
+                        ui.end_row();
+                    }
                 }
-            }
-        });
+            });
     }
 
     fn devices_ui(&mut self, ui: &mut Ui) {
-        let nav = self.state.navigators.entry(PanelKind::Dispositivos).or_default();
+        let nav = self
+            .state
+            .navigators
+            .entry(PanelKind::Dispositivos)
+            .or_default();
         navigator_header(ui, nav);
         let filter = fold(&nav.filter);
         let list_view = nav.list_view;
-        let visible =
-            mock::DEVICES.iter().filter(|d| filter.is_empty() || fold(&format!("{} {}", d.name, d.description)).contains(&filter));
+        let visible = mock::DEVICES.iter().filter(|d| {
+            filter.is_empty() || fold(&format!("{} {}", d.name, d.description)).contains(&filter)
+        });
         if list_view {
-            egui::Grid::new("devices").striped(true).num_columns(3).show(ui, |ui| {
-                ui.strong("Identificador");
-                ui.strong("Descripción");
-                ui.strong("Funciones");
-                ui.end_row();
-                for d in visible {
-                    ui.label(d.name);
-                    ui.label(d.description);
-                    ui.label(d.functions.len().to_string());
+            egui::Grid::new("devices")
+                .striped(true)
+                .num_columns(3)
+                .show(ui, |ui| {
+                    ui.strong("Identificador");
+                    ui.strong("Descripción");
+                    ui.strong("Funciones");
                     ui.end_row();
-                }
-            });
+                    for d in visible {
+                        ui.label(d.name);
+                        ui.label(d.description);
+                        ui.label(d.functions.len().to_string());
+                        ui.end_row();
+                    }
+                });
         } else {
             for d in visible {
                 CollapsingHeader::new(format!("{}  {}", d.name, d.description)).show(ui, |ui| {
@@ -343,34 +399,40 @@ impl Viewer<'_> {
         let nav = self.state.navigators.entry(PanelKind::Macros).or_default();
         navigator_header(ui, nav);
         let filter = fold(&nav.filter);
-        egui::Grid::new("macros").striped(true).num_columns(2).show(ui, |ui| {
-            ui.strong("Macro");
-            ui.strong("Tipo");
-            ui.end_row();
-            for (name, kind) in mock::MACROS {
-                if filter.is_empty() || fold(name).contains(&filter) {
-                    ui.label(*name);
-                    ui.label(*kind);
-                    ui.end_row();
+        egui::Grid::new("macros")
+            .striped(true)
+            .num_columns(2)
+            .show(ui, |ui| {
+                ui.strong("Macro");
+                ui.strong("Tipo");
+                ui.end_row();
+                for (name, kind) in mock::MACROS {
+                    if filter.is_empty() || fold(name).contains(&filter) {
+                        ui.label(*name);
+                        ui.label(*kind);
+                        ui.end_row();
+                    }
                 }
-            }
-        });
+            });
     }
 }
 
 fn messages_ui(ui: &mut Ui) {
-    egui::Grid::new("messages").striped(true).num_columns(4).show(ui, |ui| {
-        ui.strong("Clase");
-        ui.strong("Región");
-        ui.strong("Mensaje");
-        ui.strong("Objeto");
-        ui.end_row();
-        ui.label("Indicación");
-        ui.label("—");
-        ui.label("Prototipo de interfaz: el proyecto contiene datos de ejemplo.");
-        ui.label("—");
-        ui.end_row();
-    });
+    egui::Grid::new("messages")
+        .striped(true)
+        .num_columns(4)
+        .show(ui, |ui| {
+            ui.strong("Clase");
+            ui.strong("Región");
+            ui.strong("Mensaje");
+            ui.strong("Objeto");
+            ui.end_row();
+            ui.label("Indicación");
+            ui.label("—");
+            ui.label("Prototipo de interfaz: el proyecto contiene datos de ejemplo.");
+            ui.label("—");
+            ui.end_row();
+        });
 }
 
 /// Cabecera común de los navegadores (MAPA-UI.md §3.2): filtro rápido y árbol/lista.
@@ -378,7 +440,11 @@ fn navigator_header(ui: &mut Ui, nav: &mut NavigatorState) {
     ui.horizontal(|ui| {
         ui.selectable_value(&mut nav.list_view, false, "Árbol");
         ui.selectable_value(&mut nav.list_view, true, "Lista");
-        ui.add(TextEdit::singleline(&mut nav.filter).hint_text("Filtrar…").desired_width(f32::INFINITY));
+        ui.add(
+            TextEdit::singleline(&mut nav.filter)
+                .hint_text("Filtrar…")
+                .desired_width(f32::INFINITY),
+        );
     });
     ui.separator();
 }

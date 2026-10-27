@@ -102,7 +102,11 @@ pub fn dock_style(egui_style: &egui::Style) -> egui_dock::Style {
     }
     s.tab.hovered.bg_fill = HOVER_BG;
     s.tab.hovered.text_color = TEXT;
-    for corner in [&mut s.tab.active.corner_radius, &mut s.tab.focused.corner_radius, &mut s.tab.inactive.corner_radius] {
+    for corner in [
+        &mut s.tab.active.corner_radius,
+        &mut s.tab.focused.corner_radius,
+        &mut s.tab.inactive.corner_radius,
+    ] {
         *corner = CornerRadius::ZERO;
     }
     s.overlay.selection_color = ACCENT.gamma_multiply(0.4);
@@ -114,14 +118,25 @@ fn load_fonts(ctx: &egui::Context) -> bool {
     let read = |name: &str| std::fs::read(system_fonts_dir()?.join(name)).ok();
 
     if let Some(bytes) = read("segoeui.ttf") {
-        fonts.font_data.insert("segoe".into(), Arc::new(FontData::from_owned(bytes)));
-        fonts.families.entry(FontFamily::Proportional).or_default().insert(0, "segoe".into());
+        fonts
+            .font_data
+            .insert("segoe".into(), Arc::new(FontData::from_owned(bytes)));
+        fonts
+            .families
+            .entry(FontFamily::Proportional)
+            .or_default()
+            .insert(0, "segoe".into());
     }
     let icons = ["SegoeIcons.ttf", "segmdl2.ttf"].into_iter().find_map(read);
     let has_icons = icons.is_some();
     if let Some(bytes) = icons {
-        fonts.font_data.insert(ICON_FAMILY.into(), Arc::new(FontData::from_owned(bytes)));
-        fonts.families.insert(FontFamily::Name(ICON_FAMILY.into()), vec![ICON_FAMILY.into()]);
+        fonts
+            .font_data
+            .insert(ICON_FAMILY.into(), Arc::new(FontData::from_owned(bytes)));
+        fonts.families.insert(
+            FontFamily::Name(ICON_FAMILY.into()),
+            vec![ICON_FAMILY.into()],
+        );
     }
     ctx.set_fonts(fonts);
     has_icons

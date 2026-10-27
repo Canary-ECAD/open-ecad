@@ -32,7 +32,12 @@ pub struct ViewSettings {
 
 impl Default for ViewSettings {
     fn default() -> Self {
-        Self { grid_visible: true, snap: true, ortho: false, grid_mm: 4.0 }
+        Self {
+            grid_visible: true,
+            snap: true,
+            ortho: false,
+            grid_mm: 4.0,
+        }
     }
 }
 
@@ -47,7 +52,11 @@ pub struct PageView {
 
 impl Default for PageView {
     fn default() -> Self {
-        Self { zoom: 1.0, offset: Vec2::ZERO, fit_pending: true }
+        Self {
+            zoom: 1.0,
+            offset: Vec2::ZERO,
+            fit_pending: true,
+        }
     }
 }
 
@@ -69,7 +78,9 @@ impl PageView {
     fn fit(&mut self, canvas: Rect) {
         let margin = 16.0;
         let avail = (canvas.size() - Vec2::splat(2.0 * margin)).max(Vec2::splat(10.0));
-        self.zoom = (avail.x / PAGE_SIZE.x).min(avail.y / PAGE_SIZE.y).clamp(MIN_ZOOM, MAX_ZOOM);
+        self.zoom = (avail.x / PAGE_SIZE.x)
+            .min(avail.y / PAGE_SIZE.y)
+            .clamp(MIN_ZOOM, MAX_ZOOM);
         self.offset = (canvas.size() - PAGE_SIZE * self.zoom) / 2.0;
     }
 
@@ -99,20 +110,35 @@ impl PageView {
                 self.zoom_around(canvas, hover, factor);
             }
         }
-        if response.dragged_by(PointerButton::Middle) || response.dragged_by(PointerButton::Secondary) {
+        if response.dragged_by(PointerButton::Middle)
+            || response.dragged_by(PointerButton::Secondary)
+        {
             self.offset += response.drag_delta();
         }
         if response.double_clicked_by(PointerButton::Middle) {
             self.fit(canvas);
         }
 
-        let to_screen = Transform { origin: canvas.min + self.offset, zoom: self.zoom };
+        let to_screen = Transform {
+            origin: canvas.min + self.offset,
+            zoom: self.zoom,
+        };
         painter.rect_filled(canvas, 0.0, crate::theme::CANVAS_BG);
-        paint_page(&painter.with_clip_rect(canvas), &to_screen, page, settings, canvas);
+        paint_page(
+            &painter.with_clip_rect(canvas),
+            &to_screen,
+            page,
+            settings,
+            canvas,
+        );
 
         let cursor_mm = response.hover_pos().map(|p| {
             let mm = to_screen.to_mm(p);
-            if settings.snap { snap(mm, settings.grid_mm) } else { mm }
+            if settings.snap {
+                snap(mm, settings.grid_mm)
+            } else {
+                mm
+            }
         });
         if let Some(mm) = cursor_mm {
             let p = to_screen.to_screen(mm);
@@ -122,7 +148,10 @@ impl PageView {
             painter.line_segment([p - vec2(0.0, r), p + vec2(0.0, r)], Stroke::new(1.0, c));
         }
 
-        CanvasOutput { cursor_mm, zoom_percent: self.zoom / PX_PER_MM_1_1 * 100.0 }
+        CanvasOutput {
+            cursor_mm,
+            zoom_percent: self.zoom / PX_PER_MM_1_1 * 100.0,
+        }
     }
 }
 
@@ -172,7 +201,11 @@ pub fn paint_page(
     let thick = Stroke::new((0.5 * t.zoom).clamp(1.0, 2.5), ink);
 
     let sheet = t.rect(Pos2::ZERO, PAGE_SIZE.to_pos2());
-    painter.rect_filled(sheet.translate(vec2(3.0, 3.0)), 0.0, Color32::from_black_alpha(80));
+    painter.rect_filled(
+        sheet.translate(vec2(3.0, 3.0)),
+        0.0,
+        Color32::from_black_alpha(80),
+    );
     painter.rect_filled(sheet, 0.0, Color32::WHITE);
 
     if settings.grid_visible {
@@ -181,18 +214,32 @@ pub fn paint_page(
 
     let (x0, x1) = (BORDER, PAGE_SIZE.x - BORDER);
     let (y0, y1) = (BORDER, PAGE_SIZE.y - BORDER);
-    painter.rect_stroke(t.rect(pos2(x0, y0), pos2(x1, y1)), 0.0, thick, StrokeKind::Middle);
+    painter.rect_stroke(
+        t.rect(pos2(x0, y0), pos2(x1, y1)),
+        0.0,
+        thick,
+        StrokeKind::Middle,
+    );
 
     // Rejilla de referencias: columnas numeradas arriba (las referencias cruzadas son
     // página/columna).
     let strip_y = y1 - COLUMN_STRIP;
-    painter.line_segment([t.to_screen(pos2(x0, strip_y)), t.to_screen(pos2(x1, strip_y))], thin);
+    painter.line_segment(
+        [
+            t.to_screen(pos2(x0, strip_y)),
+            t.to_screen(pos2(x1, strip_y)),
+        ],
+        thin,
+    );
     let col_w = (x1 - x0) / COLUMNS as f32;
     let text_size = 2.5 * t.zoom;
     for i in 0..COLUMNS {
         let cx = x0 + col_w * i as f32;
         if i > 0 {
-            painter.line_segment([t.to_screen(pos2(cx, strip_y)), t.to_screen(pos2(cx, y1))], thin);
+            painter.line_segment(
+                [t.to_screen(pos2(cx, strip_y)), t.to_screen(pos2(cx, y1))],
+                thin,
+            );
         }
         if text_size >= 1.5 {
             painter.text(
@@ -207,16 +254,28 @@ pub fn paint_page(
 
     // Cajetín.
     let tb_y = y0 + TITLE_BLOCK;
-    painter.line_segment([t.to_screen(pos2(x0, tb_y)), t.to_screen(pos2(x1, tb_y))], thick);
+    painter.line_segment(
+        [t.to_screen(pos2(x0, tb_y)), t.to_screen(pos2(x1, tb_y))],
+        thick,
+    );
     let cells = [x0 + 60.0, x0 + 230.0, x0 + 330.0];
     for cx in cells {
-        painter.line_segment([t.to_screen(pos2(cx, y0)), t.to_screen(pos2(cx, tb_y))], thin);
+        painter.line_segment(
+            [t.to_screen(pos2(cx, y0)), t.to_screen(pos2(cx, tb_y))],
+            thin,
+        );
     }
     if text_size >= 1.5 {
         let small = FontId::proportional(text_size);
         let big = FontId::proportional(text_size * 1.6);
         let mid_y = y0 + TITLE_BLOCK / 2.0;
-        painter.text(t.to_screen(pos2(x0 + 30.0, mid_y)), Align2::CENTER_CENTER, "open-ecad", big.clone(), ink);
+        painter.text(
+            t.to_screen(pos2(x0 + 30.0, mid_y)),
+            Align2::CENTER_CENTER,
+            "open-ecad",
+            big.clone(),
+            ink,
+        );
         painter.text(
             t.to_screen(pos2((cells[0] + cells[1]) / 2.0, mid_y)),
             Align2::CENTER_CENTER,
@@ -245,7 +304,9 @@ pub fn paint_page(
 /// múltiplo (el snap sigue usando el paso real).
 fn paint_grid(painter: &egui::Painter, t: &Transform, grid_mm: f32, visible: Rect) {
     const MIN_PX: f32 = 8.0;
-    let Some(mult) = [1.0, 2.5, 5.0, 10.0, 25.0, 50.0].into_iter().find(|m| grid_mm * m * t.zoom >= MIN_PX)
+    let Some(mult) = [1.0, 2.5, 5.0, 10.0, 25.0, 50.0]
+        .into_iter()
+        .find(|m| grid_mm * m * t.zoom >= MIN_PX)
     else {
         return;
     };

@@ -3,8 +3,8 @@
 //! partir del registro de comandos, igual que antes los menús.
 
 use egui::{
-    Align2, Color32, CursorIcon, FontFamily, FontId, Popup, Rect, Response, Sense, Stroke, Ui, Vec2,
-    pos2, vec2,
+    Align2, Color32, CursorIcon, FontFamily, FontId, Popup, Rect, Response, Sense, Stroke, Ui,
+    Vec2, pos2, vec2,
 };
 
 use crate::commands::{self, COMMANDS, Command, CommandId, Menu};
@@ -37,7 +37,10 @@ pub struct RibbonState {
 
 impl Default for RibbonState {
     fn default() -> Self {
-        Self { tab: Menu::Editar, collapsed: false }
+        Self {
+            tab: Menu::Editar,
+            collapsed: false,
+        }
     }
 }
 
@@ -48,8 +51,15 @@ pub struct Ctx<'a> {
 }
 
 /// Pestañas de la cinta. «Archivo» se muestra aparte, como desplegable destacado.
-pub const TABS: [Menu; 7] =
-    [Menu::Editar, Menu::Ver, Menu::Insertar, Menu::Proyecto, Menu::Herramientas, Menu::Datos, Menu::Ayuda];
+pub const TABS: [Menu; 7] = [
+    Menu::Editar,
+    Menu::Ver,
+    Menu::Insertar,
+    Menu::Proyecto,
+    Menu::Herramientas,
+    Menu::Datos,
+    Menu::Ayuda,
+];
 
 pub fn tabs_row(ui: &mut Ui, state: &mut RibbonState, cx: &Ctx, clicked: &mut Vec<CommandId>) {
     ui.horizontal(|ui| {
@@ -113,7 +123,10 @@ pub fn body(ui: &mut Ui, state: &RibbonState, cx: &Ctx, clicked: &mut Vec<Comman
                 let x = ui.cursor().left() + 3.0;
                 let top = ui.cursor().top() + 4.0;
                 ui.painter().line_segment(
-                    [pos2(x, top), pos2(x, top + LARGE_HEIGHT + GROUP_LABEL_HEIGHT - 6.0)],
+                    [
+                        pos2(x, top),
+                        pos2(x, top + LARGE_HEIGHT + GROUP_LABEL_HEIGHT - 6.0),
+                    ],
                     Stroke::new(1.0, theme::SEPARATOR),
                 );
                 ui.add_space(8.0);
@@ -132,7 +145,10 @@ fn groups(menu: Menu) -> Vec<(u8, Vec<Entry>)> {
         let entries = &mut out.last_mut().expect("grupo recién creado").1;
         match c.submenu {
             None => entries.push(Entry::Command(c)),
-            Some(sub) => match entries.iter_mut().find(|e| matches!(e, Entry::Dropdown(s, _) if *s == sub)) {
+            Some(sub) => match entries
+                .iter_mut()
+                .find(|e| matches!(e, Entry::Dropdown(s, _) if *s == sub))
+            {
                 Some(Entry::Dropdown(_, items)) => items.push(c),
                 _ => entries.push(Entry::Dropdown(sub, vec![c])),
             },
@@ -141,7 +157,14 @@ fn groups(menu: Menu) -> Vec<(u8, Vec<Entry>)> {
     out
 }
 
-fn group_ui(ui: &mut Ui, menu: Menu, group: u8, entries: &[Entry], cx: &Ctx, clicked: &mut Vec<CommandId>) {
+fn group_ui(
+    ui: &mut Ui,
+    menu: Menu,
+    group: u8,
+    entries: &[Entry],
+    cx: &Ctx,
+    clicked: &mut Vec<CommandId>,
+) {
     ui.vertical(|ui| {
         let top = ui.cursor().top();
         ui.horizontal_top(|ui| {
@@ -157,7 +180,10 @@ fn group_ui(ui: &mut Ui, menu: Menu, group: u8, entries: &[Entry], cx: &Ctx, cli
             }
         });
         let width = ui.min_rect().width().max(40.0);
-        let label_rect = Rect::from_min_size(pos2(ui.min_rect().left(), top + LARGE_HEIGHT), vec2(width, GROUP_LABEL_HEIGHT));
+        let label_rect = Rect::from_min_size(
+            pos2(ui.min_rect().left(), top + LARGE_HEIGHT),
+            vec2(width, GROUP_LABEL_HEIGHT),
+        );
         ui.painter().text(
             label_rect.center(),
             Align2::CENTER_CENTER,
@@ -179,7 +205,11 @@ fn entry_ui(ui: &mut Ui, entry: &Entry, large: bool, cx: &Ctx, clicked: &mut Vec
         }
         Entry::Dropdown(name, items) => {
             let any_active = items.iter().any(|c| (cx.is_active)(c.id));
-            let fake = Command { label: name, implemented: items.iter().any(|c| c.implemented), ..*entry.first() };
+            let fake = Command {
+                label: name,
+                implemented: items.iter().any(|c| c.implemented),
+                ..*entry.first()
+            };
             let r = command_button(ui, cx, &fake, large, Some(any_active));
             Popup::menu(&r).show(|ui| {
                 for c in items {
@@ -193,7 +223,13 @@ fn entry_ui(ui: &mut Ui, entry: &Entry, large: bool, cx: &Ctx, clicked: &mut Vec
 }
 
 /// Botón de la cinta. `dropdown` = `Some(activo)` si abre un desplegable.
-fn command_button(ui: &mut Ui, cx: &Ctx, c: &Command, large: bool, dropdown: Option<bool>) -> Response {
+fn command_button(
+    ui: &mut Ui,
+    cx: &Ctx,
+    c: &Command,
+    large: bool,
+    dropdown: Option<bool>,
+) -> Response {
     let label = match dropdown {
         Some(_) => format!("{} ▾", c.label.trim_end_matches('…')),
         None => c.label.trim_end_matches('…').to_string(),
@@ -201,43 +237,89 @@ fn command_button(ui: &mut Ui, cx: &Ctx, c: &Command, large: bool, dropdown: Opt
     let active = dropdown.unwrap_or_else(|| (cx.is_active)(c.id));
     let icon = if cx.icons { commands::icon(c.id) } else { None };
     let text_font = FontId::proportional(12.5);
-    let text_w = ui.fonts_mut(|f| f.layout_no_wrap(label.clone(), text_font.clone(), Color32::WHITE).size().x);
+    let text_w = ui.fonts_mut(|f| {
+        f.layout_no_wrap(label.clone(), text_font.clone(), Color32::WHITE)
+            .size()
+            .x
+    });
 
     let size = if large {
         vec2((text_w + 12.0).max(52.0), LARGE_HEIGHT)
     } else {
-        vec2(text_w + if icon.is_some() { 30.0 } else { 10.0 }, SMALL_HEIGHT)
+        vec2(
+            text_w + if icon.is_some() { 30.0 } else { 10.0 },
+            SMALL_HEIGHT,
+        )
     };
     let (rect, response) = ui.allocate_exact_size(size, Sense::click());
     let response = response.on_hover_cursor(CursorIcon::PointingHand);
     let response = match &c.shortcut {
-        Some(sc) => response.on_hover_text(format!("{}  ({})", c.label, ui.ctx().format_shortcut(sc))),
+        Some(sc) => {
+            response.on_hover_text(format!("{}  ({})", c.label, ui.ctx().format_shortcut(sc)))
+        }
         None => response.on_hover_text(c.label),
     };
 
     let painter = ui.painter();
     if active {
         painter.rect_filled(rect, 2.0, theme::ACTIVE_BG);
-        painter.rect_stroke(rect, 2.0, Stroke::new(1.0, theme::ACCENT), egui::StrokeKind::Inside);
+        painter.rect_stroke(
+            rect,
+            2.0,
+            Stroke::new(1.0, theme::ACCENT),
+            egui::StrokeKind::Inside,
+        );
     } else if response.hovered() {
         painter.rect_filled(rect, 2.0, theme::HOVER_BG);
     }
-    let color = if c.implemented { theme::TEXT } else { theme::TEXT_WEAK };
-    let icon_color = if c.implemented { theme::ICON } else { theme::TEXT_WEAK };
+    let color = if c.implemented {
+        theme::TEXT
+    } else {
+        theme::TEXT_WEAK
+    };
+    let icon_color = if c.implemented {
+        theme::ICON
+    } else {
+        theme::TEXT_WEAK
+    };
     let icon_font = |size: f32| FontId::new(size, FontFamily::Name(theme::ICON_FAMILY.into()));
 
     if large {
         if let Some(icon) = icon {
-            painter.text(rect.center_top() + vec2(0.0, 22.0), Align2::CENTER_CENTER, icon, icon_font(26.0), icon_color);
+            painter.text(
+                rect.center_top() + vec2(0.0, 22.0),
+                Align2::CENTER_CENTER,
+                icon,
+                icon_font(26.0),
+                icon_color,
+            );
         }
-        painter.text(rect.center_bottom() - vec2(0.0, 12.0), Align2::CENTER_CENTER, label, text_font, color);
+        painter.text(
+            rect.center_bottom() - vec2(0.0, 12.0),
+            Align2::CENTER_CENTER,
+            label,
+            text_font,
+            color,
+        );
     } else {
         let mut x = rect.left() + 5.0;
         if let Some(icon) = icon {
-            painter.text(pos2(x + 8.0, rect.center().y), Align2::CENTER_CENTER, icon, icon_font(15.0), icon_color);
+            painter.text(
+                pos2(x + 8.0, rect.center().y),
+                Align2::CENTER_CENTER,
+                icon,
+                icon_font(15.0),
+                icon_color,
+            );
             x += 22.0;
         }
-        painter.text(pos2(x, rect.center().y), Align2::LEFT_CENTER, label, text_font, color);
+        painter.text(
+            pos2(x, rect.center().y),
+            Align2::LEFT_CENTER,
+            label,
+            text_font,
+            color,
+        );
     }
     response
 }
@@ -248,14 +330,25 @@ fn icon_button(ui: &mut Ui, cx: &Ctx, c: &Command) -> Response {
     if response.hovered() {
         ui.painter().rect_filled(rect, 2.0, theme::HOVER_BG);
     }
-    let color = if c.implemented { theme::ICON } else { theme::TEXT_WEAK };
+    let color = if c.implemented {
+        theme::ICON
+    } else {
+        theme::TEXT_WEAK
+    };
     match commands::icon(c.id).filter(|_| cx.icons) {
         Some(icon) => {
             let font = FontId::new(15.0, FontFamily::Name(theme::ICON_FAMILY.into()));
-            ui.painter().text(rect.center(), Align2::CENTER_CENTER, icon, font, color);
+            ui.painter()
+                .text(rect.center(), Align2::CENTER_CENTER, icon, font, color);
         }
         None => {
-            ui.painter().text(rect.center(), Align2::CENTER_CENTER, &c.label[..1], FontId::proportional(13.0), color);
+            ui.painter().text(
+                rect.center(),
+                Align2::CENTER_CENTER,
+                &c.label[..1],
+                FontId::proportional(13.0),
+                color,
+            );
         }
     }
     response.on_hover_text(c.label)
@@ -263,19 +356,30 @@ fn icon_button(ui: &mut Ui, cx: &Ctx, c: &Command) -> Response {
 
 fn tab_button(ui: &mut Ui, label: &str, selected: bool) -> Response {
     let font = FontId::proportional(13.5);
-    let w = ui.fonts_mut(|f| f.layout_no_wrap(label.to_string(), font.clone(), Color32::WHITE).size().x);
+    let w = ui.fonts_mut(|f| {
+        f.layout_no_wrap(label.to_string(), font.clone(), Color32::WHITE)
+            .size()
+            .x
+    });
     let (rect, response) = ui.allocate_exact_size(vec2(w + 22.0, 26.0), Sense::click());
     let painter = ui.painter();
     if selected {
         painter.rect_filled(rect, 0.0, theme::RIBBON_BG);
         painter.line_segment(
-            [rect.left_bottom() + vec2(6.0, -1.5), rect.right_bottom() + vec2(-6.0, -1.5)],
+            [
+                rect.left_bottom() + vec2(6.0, -1.5),
+                rect.right_bottom() + vec2(-6.0, -1.5),
+            ],
             Stroke::new(2.0, theme::ACCENT),
         );
     } else if response.hovered() {
         painter.rect_filled(rect, 0.0, theme::HOVER_BG);
     }
-    let color = if selected { theme::TEXT_STRONG } else { theme::TEXT };
+    let color = if selected {
+        theme::TEXT_STRONG
+    } else {
+        theme::TEXT
+    };
     painter.text(rect.center(), Align2::CENTER_CENTER, label, font, color);
     response
 }

@@ -77,7 +77,8 @@ struct Palette {
 impl OpenEcadApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let icons = theme::apply(&cc.egui_ctx);
-        let persisted: Option<Persisted> = cc.storage.and_then(|s| eframe::get_value(s, STORAGE_KEY));
+        let persisted: Option<Persisted> =
+            cc.storage.and_then(|s| eframe::get_value(s, STORAGE_KEY));
         let (docks, project, current_page) = match persisted {
             Some(p) => (p.docks, p.project, p.current_page),
             None => {
@@ -121,7 +122,9 @@ impl OpenEcadApp {
                 let rect = ctx.content_rect();
                 self.views.values_mut().for_each(|v| v.set_one_to_one(rect));
             }
-            CommandId::Rejilla => toggle(&mut self.settings.grid_visible, "Rejilla", &mut self.status),
+            CommandId::Rejilla => {
+                toggle(&mut self.settings.grid_visible, "Rejilla", &mut self.status)
+            }
             CommandId::Snap => toggle(&mut self.settings.snap, "Snap", &mut self.status),
             CommandId::Orto => toggle(&mut self.settings.ortho, "Orto", &mut self.status),
             CommandId::Herramienta(tool) => {
@@ -135,7 +138,12 @@ impl OpenEcadApp {
                     .map_or_else(|| "=A1+CAB".to_string(), |p| p.structure.clone());
                 self.current_page = Some(self.project.add_page(&structure));
             }
-            _ => self.status = format!("«{}» aún no está implementado", command.label.trim_end_matches('…')),
+            _ => {
+                self.status = format!(
+                    "«{}» aún no está implementado",
+                    command.label.trim_end_matches('…')
+                )
+            }
         }
     }
 
@@ -163,7 +171,10 @@ impl OpenEcadApp {
     /// Página anterior/siguiente en el orden del proyecto (Re Pág / Av Pág).
     fn step_page(&mut self, delta: isize) {
         let pages = &self.project.pages;
-        let pos = self.current_page.and_then(|id| pages.iter().position(|p| p.id == id)).unwrap_or(0);
+        let pos = self
+            .current_page
+            .and_then(|id| pages.iter().position(|p| p.id == id))
+            .unwrap_or(0);
         let next = (pos as isize + delta).clamp(0, pages.len() as isize - 1) as usize;
         self.current_page = pages.get(next).map(|p| p.id);
     }
@@ -175,18 +186,33 @@ impl OpenEcadApp {
             self.canvas = None;
             return;
         };
-        egui::Frame::new().fill(theme::TITLE_BG).inner_margin(egui::Margin::symmetric(8, 3)).show(ui, |ui| {
-            ui.horizontal(|ui| {
-                if ui.small_button("◀").on_hover_text("Página anterior (Re Pág)").clicked() {
-                    clicked.push(CommandId::PaginaAnterior);
-                }
-                if ui.small_button("▶").on_hover_text("Página siguiente (Av Pág)").clicked() {
-                    clicked.push(CommandId::PaginaSiguiente);
-                }
-                ui.label(RichText::new(page.name()).strong().color(theme::TEXT_STRONG));
-                ui.label(RichText::new(&page.description).color(theme::TEXT_WEAK));
+        egui::Frame::new()
+            .fill(theme::TITLE_BG)
+            .inner_margin(egui::Margin::symmetric(8, 3))
+            .show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    if ui
+                        .small_button("◀")
+                        .on_hover_text("Página anterior (Re Pág)")
+                        .clicked()
+                    {
+                        clicked.push(CommandId::PaginaAnterior);
+                    }
+                    if ui
+                        .small_button("▶")
+                        .on_hover_text("Página siguiente (Av Pág)")
+                        .clicked()
+                    {
+                        clicked.push(CommandId::PaginaSiguiente);
+                    }
+                    ui.label(
+                        RichText::new(page.name())
+                            .strong()
+                            .color(theme::TEXT_STRONG),
+                    );
+                    ui.label(RichText::new(&page.description).color(theme::TEXT_WEAK));
+                });
             });
-        });
         let view = self.views.entry(page.id).or_default();
         self.canvas = Some(view.ui(ui, page, &self.settings));
     }
@@ -241,7 +267,10 @@ impl OpenEcadApp {
 
     fn palette_ui(&mut self, ctx: &egui::Context) -> Option<CommandId> {
         let palette = self.palette.as_mut()?;
-        let words: Vec<String> = commands::fold(&palette.query).split_whitespace().map(String::from).collect();
+        let words: Vec<String> = commands::fold(&palette.query)
+            .split_whitespace()
+            .map(String::from)
+            .collect();
         let matches: Vec<&commands::Command> = COMMANDS
             .iter()
             .filter(|c| {
@@ -271,37 +300,41 @@ impl OpenEcadApp {
             ui.set_width(520.0);
             let edit = ui.add(
                 egui::TextEdit::singleline(&mut palette.query)
-                    .hint_text("Escribe un comando…  (p. ej. «girar», «panel macros», «nueva página»)")
+                    .hint_text(
+                        "Escribe un comando…  (p. ej. «girar», «panel macros», «nueva página»)",
+                    )
                     .desired_width(f32::INFINITY),
             );
             edit.request_focus();
             ui.separator();
-            egui::ScrollArea::vertical().max_height(360.0).show(ui, |ui| {
-                for (i, c) in matches.iter().enumerate() {
-                    let path = match c.submenu {
-                        Some(sub) => format!("{} › {} › ", c.menu.label(), sub),
-                        None => format!("{} › ", c.menu.label()),
-                    };
-                    let mut text = RichText::new(format!("{path}{}", c.label));
-                    if !c.implemented {
-                        text = text.weak();
+            egui::ScrollArea::vertical()
+                .max_height(360.0)
+                .show(ui, |ui| {
+                    for (i, c) in matches.iter().enumerate() {
+                        let path = match c.submenu {
+                            Some(sub) => format!("{} › {} › ", c.menu.label(), sub),
+                            None => format!("{} › ", c.menu.label()),
+                        };
+                        let mut text = RichText::new(format!("{path}{}", c.label));
+                        if !c.implemented {
+                            text = text.weak();
+                        }
+                        let mut button = Button::selectable(i == palette.selected, text);
+                        if let Some(sc) = &c.shortcut {
+                            button = button.shortcut_text(ctx.format_shortcut(sc));
+                        }
+                        let r = ui.add_sized([ui.available_width(), 22.0], button);
+                        if i == palette.selected {
+                            r.scroll_to_me(None);
+                        }
+                        if r.clicked() {
+                            chosen = Some(c.id);
+                        }
                     }
-                    let mut button = Button::selectable(i == palette.selected, text);
-                    if let Some(sc) = &c.shortcut {
-                        button = button.shortcut_text(ctx.format_shortcut(sc));
+                    if matches.is_empty() {
+                        ui.weak("Sin resultados");
                     }
-                    let r = ui.add_sized([ui.available_width(), 22.0], button);
-                    if i == palette.selected {
-                        r.scroll_to_me(None);
-                    }
-                    if r.clicked() {
-                        chosen = Some(c.id);
-                    }
-                }
-                if matches.is_empty() {
-                    ui.weak("Sin resultados");
-                }
-            });
+                });
             ui.separator();
             ui.weak("↑↓ elegir · Intro ejecutar · Esc cerrar · en gris: aún sin implementar");
         });
@@ -331,15 +364,32 @@ impl eframe::App for OpenEcadApp {
             CommandId::Orto => settings.ortho,
             _ => false,
         };
-        let cx = ribbon::Ctx { icons: self.icons, is_active: &is_active };
+        let cx = ribbon::Ctx {
+            icons: self.icons,
+            is_active: &is_active,
+        };
         egui::Panel::top("pestanas")
-            .frame(egui::Frame::new().fill(theme::TITLE_BG).inner_margin(egui::Margin::symmetric(6, 3)))
-            .show(ui, |ui| ribbon::tabs_row(ui, &mut self.ribbon, &cx, &mut clicked));
+            .frame(
+                egui::Frame::new()
+                    .fill(theme::TITLE_BG)
+                    .inner_margin(egui::Margin::symmetric(6, 3)),
+            )
+            .show(ui, |ui| {
+                ribbon::tabs_row(ui, &mut self.ribbon, &cx, &mut clicked)
+            });
         egui::Panel::top("cinta")
-            .frame(egui::Frame::new().fill(theme::RIBBON_BG).inner_margin(egui::Margin::symmetric(6, 4)))
+            .frame(
+                egui::Frame::new()
+                    .fill(theme::RIBBON_BG)
+                    .inner_margin(egui::Margin::symmetric(6, 4)),
+            )
             .show(ui, |ui| ribbon::body(ui, &self.ribbon, &cx, &mut clicked));
         egui::Panel::bottom("estado")
-            .frame(egui::Frame::new().fill(theme::TITLE_BG).inner_margin(egui::Margin::symmetric(8, 3)))
+            .frame(
+                egui::Frame::new()
+                    .fill(theme::TITLE_BG)
+                    .inner_margin(egui::Margin::symmetric(8, 3)),
+            )
             .show(ui, |ui| clicked.extend(self.status_bar(ui)));
 
         let mut viewer = Viewer {
@@ -358,7 +408,11 @@ impl eframe::App for OpenEcadApp {
                 .show_leaf_collapse_buttons(false)
                 .show_inside(ui, &mut viewer);
         };
-        let Docks { izquierda, derecha, abajo } = &mut self.docks;
+        let Docks {
+            izquierda,
+            derecha,
+            abajo,
+        } = &mut self.docks;
         let has_tabs = |d: &DockState<PanelKind>| d.iter_all_tabs().next().is_some();
         if has_tabs(abajo) {
             egui::Panel::bottom("zona_abajo")
@@ -412,8 +466,11 @@ impl eframe::App for OpenEcadApp {
     }
 
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        let persisted =
-            Persisted { docks: self.docks.clone(), project: self.project.clone(), current_page: self.current_page };
+        let persisted = Persisted {
+            docks: self.docks.clone(),
+            project: self.project.clone(),
+            current_page: self.current_page,
+        };
         eframe::set_value(storage, STORAGE_KEY, &persisted);
     }
 }
@@ -427,9 +484,21 @@ fn toggle(flag: &mut bool, name: &str, status: &mut String) {
 /// propiedades a la derecha, listas abajo. El plano siempre queda en el centro.
 fn default_docks() -> Docks {
     let mut izquierda = DockState::new(vec![PanelKind::Paginas]);
-    izquierda.main_surface_mut().split_below(NodeIndex::root(), 0.65, vec![PanelKind::Preview]);
+    izquierda
+        .main_surface_mut()
+        .split_below(NodeIndex::root(), 0.65, vec![PanelKind::Preview]);
     let mut derecha = DockState::new(vec![PanelKind::Insercion, PanelKind::Macros]);
-    derecha.main_surface_mut().split_below(NodeIndex::root(), 0.55, vec![PanelKind::Propiedades]);
-    let abajo = DockState::new(vec![PanelKind::Mensajes, PanelKind::PuntosInterrupcion, PanelKind::Dispositivos]);
-    Docks { izquierda, derecha, abajo }
+    derecha
+        .main_surface_mut()
+        .split_below(NodeIndex::root(), 0.55, vec![PanelKind::Propiedades]);
+    let abajo = DockState::new(vec![
+        PanelKind::Mensajes,
+        PanelKind::PuntosInterrupcion,
+        PanelKind::Dispositivos,
+    ]);
+    Docks {
+        izquierda,
+        derecha,
+        abajo,
+    }
 }

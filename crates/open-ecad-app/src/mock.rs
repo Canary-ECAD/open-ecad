@@ -40,7 +40,11 @@ impl Default for Project {
             ("=A1+CAB", "Mando y señalización", "Esquema multifilar"),
             ("=A2+PUP", "Pupitre de mando", "Esquema multifilar"),
             ("=A2+PUP", "Paradas de emergencia", "Esquema multifilar"),
-            ("=A1+CAB", "Disposición del armario", "Montaje de armario 2D"),
+            (
+                "=A1+CAB",
+                "Disposición del armario",
+                "Montaje de armario 2D",
+            ),
         ];
         let mut counters = std::collections::HashMap::<&str, u32>::new();
         let pages = rows
@@ -58,7 +62,11 @@ impl Default for Project {
                 }
             })
             .collect::<Vec<_>>();
-        Self { name: "Proyecto de ejemplo".into(), next_id: pages.len() as PageId + 1, pages }
+        Self {
+            name: "Proyecto de ejemplo".into(),
+            next_id: pages.len() as PageId + 1,
+            pages,
+        }
     }
 }
 
@@ -100,17 +108,41 @@ pub struct Device {
 }
 
 pub const DEVICES: &[Device] = &[
-    Device { name: "-Q1", description: "Interruptor general", functions: &["1-2", "3-4", "5-6"] },
-    Device { name: "-F1", description: "Guardamotor bomba 1", functions: &["1-2", "3-4", "5-6", "13-14"] },
+    Device {
+        name: "-Q1",
+        description: "Interruptor general",
+        functions: &["1-2", "3-4", "5-6"],
+    },
+    Device {
+        name: "-F1",
+        description: "Guardamotor bomba 1",
+        functions: &["1-2", "3-4", "5-6", "13-14"],
+    },
     Device {
         name: "-K1",
         description: "Contactor bomba 1",
         functions: &["A1-A2 bobina", "1-2", "3-4", "5-6", "13-14", "21-22"],
     },
-    Device { name: "-M1", description: "Bomba 1", functions: &["U1 V1 W1 PE"] },
-    Device { name: "-T1", description: "Fuente 24 V DC", functions: &["L N PE", "+ -"] },
-    Device { name: "-S1", description: "Pulsador marcha", functions: &["13-14"] },
-    Device { name: "-S2", description: "Pulsador paro", functions: &["11-12"] },
+    Device {
+        name: "-M1",
+        description: "Bomba 1",
+        functions: &["U1 V1 W1 PE"],
+    },
+    Device {
+        name: "-T1",
+        description: "Fuente 24 V DC",
+        functions: &["L N PE", "+ -"],
+    },
+    Device {
+        name: "-S1",
+        description: "Pulsador marcha",
+        functions: &["13-14"],
+    },
+    Device {
+        name: "-S2",
+        description: "Pulsador paro",
+        functions: &["11-12"],
+    },
 ];
 
 /// (nombre, página de origen, páginas de destino)
@@ -125,13 +157,25 @@ pub const INTERRUPTIONS: &[(&str, &str, &str)] = &[
 
 /// Árbol de la biblioteca de símbolos de ejemplo: (grupo, símbolos).
 pub const SYMBOL_LIBRARY: &[(&str, &[&str])] = &[
-    ("Contactos", &["Contacto NA", "Contacto NC", "Contacto conmutado"]),
+    (
+        "Contactos",
+        &["Contacto NA", "Contacto NC", "Contacto conmutado"],
+    ),
     ("Bobinas", &["Bobina de relé", "Bobina de contactor"]),
-    ("Protección", &["Fusible", "Magnetotérmico", "Guardamotor", "Diferencial"]),
+    (
+        "Protección",
+        &["Fusible", "Magnetotérmico", "Guardamotor", "Diferencial"],
+    ),
     ("Motores", &["Motor trifásico", "Motor monofásico"]),
     ("Bornes", &["Borne", "Borne PE", "Borne seccionable"]),
-    ("Mando", &["Pulsador NA", "Pulsador NC", "Seta de emergencia", "Piloto"]),
-    ("Conexión", &["Esquina", "Nodo T", "Cruce", "Punto de interrupción"]),
+    (
+        "Mando",
+        &["Pulsador NA", "Pulsador NC", "Seta de emergencia", "Piloto"],
+    ),
+    (
+        "Conexión",
+        &["Esquina", "Nodo T", "Cruce", "Punto de interrupción"],
+    ),
 ];
 
 pub const MACROS: &[(&str, &str)] = &[
