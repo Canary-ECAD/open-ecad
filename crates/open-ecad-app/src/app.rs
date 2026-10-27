@@ -1,16 +1,17 @@
-//! Ventana principal: menús, barra de herramientas, dock, barra de estado y paleta de
-//! comandos (MAPA-UI.md §4.1).
+//! Ventana principal: cinta, dock, barra de estado y paleta de comandos (MAPA-UI.md §4.1).
 
 use std::collections::HashMap;
 
 use egui::{Button, Key, Modifiers, RichText, Ui, ViewportCommand};
-use egui_dock::{DockArea, DockState, NodeIndex, Style};
+use egui_dock::{DockArea, DockState, NodeIndex};
 use serde::{Deserialize, Serialize};
 
 use crate::canvas::{CanvasOutput, PageView, ViewSettings};
-use crate::commands::{self, COMMANDS, CommandId, Menu, Tool};
+use crate::commands::{self, COMMANDS, CommandId, Tool};
 use crate::mock::{PageId, Project};
 use crate::panels::{Action, PanelKind, PanelsState, Tab, Viewer};
+use crate::ribbon::{self, RibbonState};
+use crate::theme;
 
 /// Cambiar la clave invalida disposiciones guardadas incompatibles.
 const STORAGE_KEY: &str = "open-ecad/ventana/v1";
@@ -32,6 +33,8 @@ pub struct OpenEcadApp {
     canvas: Option<CanvasOutput>,
     palette: Option<Palette>,
     about_open: bool,
+    ribbon: RibbonState,
+    icons: bool,
 }
 
 #[derive(Default)]
@@ -42,7 +45,7 @@ struct Palette {
 
 impl OpenEcadApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        cc.egui_ctx.set_theme(egui::Theme::Dark);
+        let icons = theme::apply(&cc.egui_ctx);
         let persisted: Option<Persisted> = cc.storage.and_then(|s| eframe::get_value(s, STORAGE_KEY));
         let (dock, project) = match persisted {
             Some(p) => (p.dock, p.project),
@@ -68,6 +71,8 @@ impl OpenEcadApp {
             canvas: None,
             palette: None,
             about_open: false,
+            ribbon: RibbonState::default(),
+            icons,
         }
     }
 
@@ -149,71 +154,6 @@ impl OpenEcadApp {
         for id in pressed {
             self.execute(ctx, id);
         }
-    }
-
-    fn menu_bar(&mut self, ui: &mut Ui) -> Vec<CommandId> {
-        let mut clicked = Vec::new();
-        egui::MenuBar::new().ui(ui, |ui| {
-            for menu in Menu::ALL {
-                ui.menu_button(menu.label(), |ui| {
-                    let items: Vec<_> = COMMANDS.iter().filter(|c| c.menu == menu).collect();
-                    let mut last_group = None;
-                    let mut seen_submenus: Vec<&str> = Vec::new();
-                    for c in &items {
-                        if last_group.is_some_and(|g| g != c.group) {
-                            ui.separator();
-                        }
-                        last_group = Some(c.group);
-                        match c.submenu {
-                            None => {
-                                if command_button(ui, c) {
-                                    clicked.push(c.id);
-                                }
-                            }
-                            Some(sub) if !seen_submenus.contains(&sub) => {
-                                seen_submenus.push(sub);
-                                ui.menu_button(sub, |ui| {
-                                    for c in items.iter().filter(|c| c.submenu == Some(sub)) {
-                                        if command_button(ui, c) {
-                                            clicked.push(c.id);
-                                        }
-                                    }
-                                });
-                            }
-                            Some(_) => {}
-                        }
-                    }
-                });
-            }
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.button("Buscar comando…  Ctrl+K").clicked() {
-                    clicked.push(CommandId::PaletaComandos);
-                }
-            });
-        });
-        clicked
-    }
-
-    fn toolbar(&mut self, ui: &mut Ui) -> Vec<CommandId> {
-        let mut clicked = Vec::new();
-        ui.horizontal(|ui| {
-            for id in [CommandId::AbrirProyecto, CommandId::Guardar, CommandId::Deshacer, CommandId::Rehacer] {
-                if ui.button(commands::get(id).label.trim_end_matches(" proyecto…")).clicked() {
-                    clicked.push(id);
-                }
-            }
-            ui.separator();
-            for tool in [Tool::Seleccion, Tool::Linea, Tool::Rectangulo, Tool::Texto, Tool::Simbolo, Tool::Macro] {
-                if ui.selectable_label(self.tool == tool, tool.label()).clicked() {
-                    clicked.push(CommandId::Herramienta(tool));
-                }
-            }
-            ui.separator();
-            if ui.button("Ajustar página").clicked() {
-                clicked.push(CommandId::AjustarPagina);
-            }
-        });
-        clicked
     }
 
     fn status_bar(&mut self, ui: &mut Ui) -> Vec<CommandId> {
@@ -330,11 +270,24 @@ impl eframe::App for OpenEcadApp {
         }
 
         let mut clicked = Vec::new();
-        egui::Panel::top("menu").show(ui, |ui| {
-            clicked.extend(self.menu_bar(ui));
-            clicked.extend(self.toolbar(ui));
-        });
-        egui::Panel::bottom("estado").show(ui, |ui| clicked.extend(self.status_bar(ui)));
+        let (tool, settings) = (self.tool, &self.settings);
+        let is_active = |id: CommandId| match id {
+            CommandId::Herramienta(t) => t == tool,
+            CommandId::Rejilla => settings.grid_visible,
+            CommandId::Snap => settings.snap,
+            CommandId::Orto => settings.ortho,
+            _ => false,
+        };
+        let cx = ribbon::Ctx { icons: self.icons, is_active: &is_active };
+        egui::Panel::top("pestanas")
+            .frame(egui::Frame::new().fill(theme::TITLE_BG).inner_margin(egui::Margin::symmetric(6, 3)))
+            .show(ui, |ui| ribbon::tabs_row(ui, &mut self.ribbon, &cx, &mut clicked));
+        egui::Panel::top("cinta")
+            .frame(egui::Frame::new().fill(theme::RIBBON_BG).inner_margin(egui::Margin::symmetric(6, 4)))
+            .show(ui, |ui| ribbon::body(ui, &self.ribbon, &cx, &mut clicked));
+        egui::Panel::bottom("estado")
+            .frame(egui::Frame::new().fill(theme::TITLE_BG).inner_margin(egui::Margin::symmetric(8, 3)))
+            .show(ui, |ui| clicked.extend(self.status_bar(ui)));
 
         let mut viewer = Viewer {
             project: &mut self.project,
@@ -346,7 +299,7 @@ impl eframe::App for OpenEcadApp {
         };
         egui::CentralPanel::no_frame().show(ui, |ui| {
             DockArea::new(&mut self.dock)
-                .style(Style::from_egui(ui.style()))
+                .style(theme::dock_style(ui.style()))
                 .show_leaf_collapse_buttons(false)
                 .show_inside(ui, &mut viewer);
         });
@@ -384,18 +337,6 @@ impl eframe::App for OpenEcadApp {
         let persisted = Persisted { dock: self.dock.clone(), project: self.project.clone() };
         eframe::set_value(storage, STORAGE_KEY, &persisted);
     }
-}
-
-fn command_button(ui: &mut Ui, c: &commands::Command) -> bool {
-    let mut text = RichText::new(c.label);
-    if !c.implemented {
-        text = text.weak();
-    }
-    let mut button = Button::new(text);
-    if let Some(sc) = &c.shortcut {
-        button = button.shortcut_text(ui.ctx().format_shortcut(sc));
-    }
-    ui.add(button).clicked()
 }
 
 fn toggle(flag: &mut bool, name: &str, status: &mut String) {

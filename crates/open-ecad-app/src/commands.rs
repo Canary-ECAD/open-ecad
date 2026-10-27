@@ -20,17 +20,6 @@ pub enum Menu {
 }
 
 impl Menu {
-    pub const ALL: [Menu; 8] = [
-        Menu::Archivo,
-        Menu::Editar,
-        Menu::Ver,
-        Menu::Insertar,
-        Menu::Proyecto,
-        Menu::Herramientas,
-        Menu::Datos,
-        Menu::Ayuda,
-    ];
-
     pub fn label(self) -> &'static str {
         match self {
             Menu::Archivo => "Archivo",
@@ -276,6 +265,112 @@ pub static COMMANDS: &[Command] = &[
     cmd(C::PaletaComandos, M::Ayuda, 0, "Paleta de comandos…").sc(ctrl(Key::K)).ok(),
     cmd(C::AcercaDe, M::Ayuda, 1, "Acerca de open-ecad").ok(),
 ];
+
+/// Nombre del grupo de la cinta (los grupos de cada menú de `COMMANDS`).
+pub fn group_name(menu: Menu, group: u8) -> &'static str {
+    match (menu, group) {
+        (Menu::Archivo, 0) => "Proyecto",
+        (Menu::Archivo, 1) => "Guardar",
+        (Menu::Archivo, 2) => "Datos",
+        (Menu::Archivo, 3) => "Salida",
+        (Menu::Editar, 0) => "Historial",
+        (Menu::Editar, 1) => "Portapapeles",
+        (Menu::Editar, 2) => "Transformar",
+        (Menu::Editar, 3) => "Agrupar",
+        (Menu::Editar, 4) => "Organizar",
+        (Menu::Editar, 5) => "Selección",
+        (Menu::Ver, 0) => "Navegadores",
+        (Menu::Ver, 1) => "Zoom",
+        (Menu::Ver, 2) => "Ayudas de dibujo",
+        (Menu::Ver, 3) => "Mostrar",
+        (Menu::Ver, 4) => "Seguimiento",
+        (Menu::Ver, 5) => "Ventana",
+        (Menu::Insertar, 0) => "Componentes",
+        (Menu::Insertar, 1) => "Gráfico",
+        (Menu::Insertar, 2) => "Conexiones",
+        (Menu::Insertar, 3) => "Autoconexión",
+        (Menu::Proyecto, 0) => "Página",
+        (Menu::Proyecto, 1) => "Gestión",
+        (Menu::Proyecto, 2) => "Conexiones",
+        (Menu::Herramientas, 0) => "Comprobación",
+        (Menu::Datos, 0) => "Símbolos",
+        (Menu::Datos, 1) => "Macros",
+        (Menu::Datos, 2) => "Cajetines",
+        (Menu::Ayuda, 0) => "Comandos",
+        (Menu::Ayuda, 1) => "Información",
+        _ => "",
+    }
+}
+
+/// Icono del comando como carácter de la fuente de iconos de Windows (Segoe Fluent
+/// Icons / MDL2). Si la fuente no está disponible, la cinta muestra solo el texto.
+pub fn icon(id: CommandId) -> Option<char> {
+    let c = match id {
+        C::NuevoProyecto => '\u{E8F4}',
+        C::AbrirProyecto => '\u{E8E5}',
+        C::Guardar => '\u{E74E}',
+        C::GuardarComo => '\u{E792}',
+        C::CerrarProyecto => '\u{E8BB}',
+        C::PropiedadesProyecto => '\u{E946}',
+        C::Imprimir => '\u{E749}',
+        C::ExportarPdf => '\u{EA90}',
+        C::Ajustes => '\u{E713}',
+        C::Salir => '\u{E7E8}',
+        C::Deshacer => '\u{E7A7}',
+        C::Rehacer => '\u{E7A6}',
+        C::Cortar => '\u{E8C6}',
+        C::Copiar => '\u{E8C8}',
+        C::Pegar => '\u{E77F}',
+        C::Duplicar => '\u{F413}',
+        C::Borrar => '\u{E74D}',
+        C::Mover => '\u{E7C2}',
+        C::Girar => '\u{E7AD}',
+        C::Reflejar => '\u{E8AB}',
+        C::Estirar => '\u{E740}',
+        C::Agrupar => '\u{F168}',
+        C::Desagrupar => '\u{F169}',
+        C::AlinearRejilla => '\u{E80A}',
+        C::TraerDelante => '\u{E74A}',
+        C::EnviarDetras => '\u{E74B}',
+        C::SeleccionarMismoTipo => '\u{E8B3}',
+        C::MostrarPanel(_) => '\u{E8A0}',
+        C::AjustarPagina => '\u{E9A6}',
+        C::Zoom100 => '\u{E71E}',
+        C::Rejilla => '\u{E80A}',
+        C::Snap => '\u{E7C9}',
+        C::Orto => '\u{ECA5}',
+        C::PuntosInsercion => '\u{E7B7}',
+        C::ElementosInvisibles => '\u{E7B3}',
+        C::SeguimientoRed => '\u{E71B}',
+        C::SeguimientoPotencial => '\u{E945}',
+        C::RestablecerDisposicion => '\u{E72C}',
+        C::Herramienta(Tool::Seleccion) => '\u{E8B0}',
+        C::Herramienta(Tool::Linea) => '\u{E738}',
+        C::Herramienta(Tool::Rectangulo) => '\u{E739}',
+        C::Herramienta(Tool::Circulo) => '\u{EA3A}',
+        C::Herramienta(Tool::Texto) => '\u{E8D2}',
+        C::Herramienta(Tool::Simbolo) => '\u{E950}',
+        C::Herramienta(Tool::Macro) => '\u{EA86}',
+        C::Imagen => '\u{E91B}',
+        C::Acotacion => '\u{ED5E}',
+        C::PuntoInterrupcion => '\u{E707}',
+        C::DefinicionPotencial => '\u{E945}',
+        C::Esquina | C::NodoT | C::Cruce | C::CorteAutoconexion => '\u{E703}',
+        C::NuevaPagina => '\u{E7C3}',
+        C::PropiedadesPagina => '\u{E70F}',
+        C::Estructura => '\u{E8F1}',
+        C::Capas => '\u{E81E}',
+        C::RegenerarConexiones => '\u{E895}',
+        C::Comprobar => '\u{E73E}',
+        C::BibliotecaSimbolos => '\u{E8F1}',
+        C::EditarSimbolo => '\u{E70F}',
+        C::CrearMacro => '\u{EA86}',
+        C::Cajetines => '\u{E8A5}',
+        C::PaletaComandos => '\u{E721}',
+        C::AcercaDe => '\u{E897}',
+    };
+    Some(c)
+}
 
 pub fn get(id: CommandId) -> &'static Command {
     COMMANDS

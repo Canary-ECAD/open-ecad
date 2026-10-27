@@ -7,6 +7,8 @@ mod canvas;
 mod commands;
 mod mock;
 mod panels;
+mod ribbon;
+mod theme;
 
 fn main() -> eframe::Result {
     let options = eframe::NativeOptions {

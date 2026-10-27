@@ -107,7 +107,7 @@ impl PageView {
         }
 
         let to_screen = Transform { origin: canvas.min + self.offset, zoom: self.zoom };
-        painter.rect_filled(canvas, 0.0, Color32::from_gray(48));
+        painter.rect_filled(canvas, 0.0, crate::theme::CANVAS_BG);
         paint_page(&painter.with_clip_rect(canvas), &to_screen, page, settings, canvas);
 
         let cursor_mm = response.hover_pos().map(|p| {
@@ -194,7 +194,7 @@ pub fn paint_page(
         if i > 0 {
             painter.line_segment([t.to_screen(pos2(cx, strip_y)), t.to_screen(pos2(cx, y1))], thin);
         }
-        if text_size >= 3.0 {
+        if text_size >= 1.5 {
             painter.text(
                 t.to_screen(pos2(cx + col_w / 2.0, strip_y + COLUMN_STRIP / 2.0)),
                 Align2::CENTER_CENTER,
@@ -212,7 +212,7 @@ pub fn paint_page(
     for cx in cells {
         painter.line_segment([t.to_screen(pos2(cx, y0)), t.to_screen(pos2(cx, tb_y))], thin);
     }
-    if text_size >= 3.0 {
+    if text_size >= 1.5 {
         let small = FontId::proportional(text_size);
         let big = FontId::proportional(text_size * 1.6);
         let mid_y = y0 + TITLE_BLOCK / 2.0;

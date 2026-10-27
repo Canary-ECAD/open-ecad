@@ -194,9 +194,17 @@ Un único componente para páginas, macros, dispositivos, puntos de interrupció
 - Menú contextual propio del tipo de objeto.
 
 ### 3.3 Paleta de comandos
-EPLAN ya tiene "Buscar comando". En open-ecad pasa a ser **la puerta principal**
-(`Ctrl+K`): todo comando existe en la paleta, aunque no esté en ningún menú. Eso permite
-menús cortos sin perder funciones.
+EPLAN ya tiene "Buscar comando". En open-ecad es un complemento de la cinta (`Ctrl+K`):
+todo comando existe en la paleta, aunque no esté en la cinta. Eso permite una cinta corta
+sin perder funciones.
+
+### 3.3 bis Cinta (decidido 2026-10-27)
+Se adopta la **cinta** de los CAD de escritorio, en vez de menús clásicos: pestañas
+(*Editar, Ver, Insertar, Proyecto, Herramientas, Datos, Ayuda*), grupos con nombre, un botón
+grande por grupo y el resto pequeños en columnas de tres; los submenús pasan a botones
+desplegables. *Archivo* es un desplegable destacado, no una pantalla completa. Barra de
+acceso rápido (guardar, deshacer, rehacer) a la izquierda de las pestañas. Clic en la pestaña
+activa (o doble clic) pliega la cinta. Tema oscuro por defecto.
 
 ### 3.4 Menú contextual del canvas
 Se conserva el patrón observado, reducido:
@@ -224,8 +232,10 @@ configurables).
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────┐
-│ Archivo  Editar  Ver  Insertar  Proyecto  Herramientas  Datos   [Ctrl+K…]  │  ← menú + paleta
-│ [abrir][guardar][↶][↷] │ [selec][línea][texto][símbolo][macro] │ [zoom]   │  ← barra corta
+│ 💾↶↷ [Archivo] Editar Ver Insertar Proyecto Herram. Datos  [Buscar… Ctrl+K]│  ← pestañas
+│ [⟲]  ⎘ Copiar  │ [✥]  ↻ Girar   │ [▦]  ...                                  │  ← cinta
+│ Deshacer       │ Mover          │                                           │
+│   Historial    │  Transformar   │  Organizar                                │
 ├──────────────┬──────────────────────────────────────────┬──────────────────┤
 │ PROYECTO     │  [=A1+CAB/3 ×] [=A1+CAB/4 ×]             │ INSERCIÓN        │
 │ ▸ Páginas    │                                          │  Símbolos │Macros│
@@ -244,9 +254,9 @@ configurables).
 
 Todos los paneles son anclables (§3.1); esta es solo la disposición por defecto.
 
-### 4.2 Menús v1
+### 4.2 Pestañas de la cinta v1
 
-| Menú | Contenido |
+| Pestaña | Contenido |
 |---|---|
 | **Archivo** | Nuevo · Abrir · Recientes · Guardar · Guardar como · Cerrar · Propiedades del proyecto · Imprimir · Exportar PDF/SVG · Ajustes · Salir |
 | **Editar** | Deshacer · Rehacer · Cortar · Copiar · Pegar · Duplicar · Borrar · Mover · Girar · Reflejar · Estirar · Agrupar/Desagrupar · Alinear a rejilla · Orden (delante/detrás) · Seleccionar mismo tipo |
@@ -327,9 +337,8 @@ Pedidas al usuario para ir completando el mapa. Marcar con ✔ al resolver.
 
 ### Preguntas
 
-- **¿Cinta (ribbon) o menús clásicos?** La propuesta usa menús, una barra corta y una
-  paleta de comandos. ¿Echarías de menos la cinta?
-- **¿Tema oscuro por defecto?** Todas tus capturas están en oscuro.
+- ✔ **¿Cinta o menús clásicos?** Cinta, con aspecto de CAD de escritorio (§3.3 bis).
+- ✔ **¿Tema oscuro por defecto?** Sí.
 - **Idioma**: ¿interfaz solo en español al principio, o español e inglés desde v1?
 - **Ajustes**: ¿qué ajustes cambias de verdad? En los de usuario y proyecto hay cientos.
   Con una lista de los 10–20 que tocas basta para el v1.
