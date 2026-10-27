@@ -1,5 +1,7 @@
 # Vendor background reading — NEVER distribute (clean-room pledge, see CONTRIBUTING.md)
 _docs-eplan/
+# Capturas de referencia locales (contienen datos reales de proyectos)
+imagenes/
 
 # Rust
 /target
