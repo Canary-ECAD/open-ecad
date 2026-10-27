@@ -116,6 +116,8 @@ pub enum CommandId {
     CorteAutoconexion,
     // Proyecto
     NuevaPagina,
+    PaginaAnterior,
+    PaginaSiguiente,
     PropiedadesPagina,
     Estructura,
     Capas,
@@ -249,6 +251,8 @@ pub static COMMANDS: &[Command] = &[
     cmd(C::CorteAutoconexion, M::Insertar, 3, "Corte de autoconexión").sub("Piezas de conexión"),
     // Proyecto
     cmd(C::NuevaPagina, M::Proyecto, 0, "Nueva página").sc(ctrl_shift(Key::N)).ok(),
+    cmd(C::PaginaAnterior, M::Proyecto, 0, "Página anterior").sc(key(Key::PageUp)).ok(),
+    cmd(C::PaginaSiguiente, M::Proyecto, 0, "Página siguiente").sc(key(Key::PageDown)).ok(),
     cmd(C::PropiedadesPagina, M::Proyecto, 0, "Propiedades de página"),
     cmd(C::Estructura, M::Proyecto, 1, "Estructura (identificadores)…"),
     cmd(C::Capas, M::Proyecto, 1, "Capas…"),
@@ -357,6 +361,8 @@ pub fn icon(id: CommandId) -> Option<char> {
         C::DefinicionPotencial => '\u{E945}',
         C::Esquina | C::NodoT | C::Cruce | C::CorteAutoconexion => '\u{E703}',
         C::NuevaPagina => '\u{E7C3}',
+        C::PaginaAnterior => '\u{E76B}',
+        C::PaginaSiguiente => '\u{E76C}',
         C::PropiedadesPagina => '\u{E70F}',
         C::Estructura => '\u{E8F1}',
         C::Capas => '\u{E81E}',

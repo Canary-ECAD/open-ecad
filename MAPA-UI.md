@@ -252,7 +252,11 @@ configurables).
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Todos los paneles son anclables (§3.1); esta es solo la disposición por defecto.
+**El área del plano es fija** (decidido 2026-10-27): es el cuerpo del programa, no un panel;
+no se mueve ni se cierra, y muestra **una sola página**: un clic en el navegador sustituye
+la página mostrada en vez de abrir otra pestaña. Los paneles se acoplan en tres zonas
+alrededor (izquierda, derecha, abajo); dentro de cada zona se apilan y reordenan, y se
+cambian de zona desde el menú contextual de la pestaña.
 
 ### 4.2 Pestañas de la cinta v1
 

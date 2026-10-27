@@ -1,4 +1,5 @@
-//! Ventana principal: cinta, dock, barra de estado y paleta de comandos (MAPA-UI.md §4.1).
+//! Ventana principal: cinta, área del plano fija en el centro, zonas de paneles
+//! alrededor, barra de estado y paleta de comandos (MAPA-UI.md §4.1).
 
 use std::collections::HashMap;
 
@@ -9,22 +10,52 @@ use serde::{Deserialize, Serialize};
 use crate::canvas::{CanvasOutput, PageView, ViewSettings};
 use crate::commands::{self, COMMANDS, CommandId, Tool};
 use crate::mock::{PageId, Project};
-use crate::panels::{Action, PanelKind, PanelsState, Tab, Viewer};
+use crate::panels::{Action, PanelKind, PanelsState, Region, Viewer};
 use crate::ribbon::{self, RibbonState};
 use crate::theme;
 
 /// Cambiar la clave invalida disposiciones guardadas incompatibles.
-const STORAGE_KEY: &str = "open-ecad/ventana/v1";
+const STORAGE_KEY: &str = "open-ecad/ventana/v2";
+
+/// Un dock por zona. Dentro de cada zona los paneles se apilan, dividen y reordenan
+/// libremente; entre zonas se mueven con el menú contextual de la pestaña.
+#[derive(Clone, Serialize, Deserialize)]
+struct Docks {
+    izquierda: DockState<PanelKind>,
+    derecha: DockState<PanelKind>,
+    abajo: DockState<PanelKind>,
+}
+
+impl Docks {
+    fn get_mut(&mut self, region: Region) -> &mut DockState<PanelKind> {
+        match region {
+            Region::Izquierda => &mut self.izquierda,
+            Region::Derecha => &mut self.derecha,
+            Region::Abajo => &mut self.abajo,
+        }
+    }
+
+    fn remove(&mut self, kind: PanelKind) {
+        for region in Region::ALL {
+            let dock = self.get_mut(region);
+            if let Some(path) = dock.find_tab(&kind) {
+                dock.remove_tab(path);
+            }
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 struct Persisted {
-    dock: DockState<Tab>,
+    docks: Docks,
     project: Project,
+    current_page: Option<PageId>,
 }
 
 pub struct OpenEcadApp {
-    dock: DockState<Tab>,
+    docks: Docks,
     project: Project,
+    current_page: Option<PageId>,
     views: HashMap<PageId, PageView>,
     settings: ViewSettings,
     panels: PanelsState,
@@ -47,25 +78,21 @@ impl OpenEcadApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let icons = theme::apply(&cc.egui_ctx);
         let persisted: Option<Persisted> = cc.storage.and_then(|s| eframe::get_value(s, STORAGE_KEY));
-        let (dock, project) = match persisted {
-            Some(p) => (p.dock, p.project),
+        let (docks, project, current_page) = match persisted {
+            Some(p) => (p.docks, p.project, p.current_page),
             None => {
                 let project = Project::default();
-                (default_dock(&project), project)
+                let first = project.pages.get(2).map(|p| p.id);
+                (default_docks(), project, first)
             }
         };
-        let selected_page = dock.iter_all_tabs().find_map(|(_, t)| match t {
-            Tab::Page(id) => Some(*id),
-            Tab::Panel(_) => None,
-        });
-        let mut panels = PanelsState::default();
-        panels.selected_page = selected_page;
         Self {
-            dock,
+            docks,
             project,
+            current_page,
             views: HashMap::new(),
             settings: ViewSettings::default(),
-            panels,
+            panels: PanelsState::default(),
             tool: Tool::Seleccion,
             status: "Listo".into(),
             canvas: None,
@@ -84,10 +111,12 @@ impl OpenEcadApp {
             CommandId::AcercaDe => self.about_open = true,
             CommandId::MostrarPanel(kind) => self.show_panel(kind),
             CommandId::RestablecerDisposicion => {
-                self.dock = default_dock(&self.project);
+                self.docks = default_docks();
                 self.status = "Disposición restablecida".into();
             }
             CommandId::AjustarPagina => self.views.values_mut().for_each(PageView::request_fit),
+            CommandId::PaginaAnterior => self.step_page(-1),
+            CommandId::PaginaSiguiente => self.step_page(1),
             CommandId::Zoom100 => {
                 let rect = ctx.content_rect();
                 self.views.values_mut().for_each(|v| v.set_one_to_one(rect));
@@ -101,41 +130,65 @@ impl OpenEcadApp {
             }
             CommandId::NuevaPagina => {
                 let structure = self
-                    .panels
-                    .selected_page
+                    .current_page
                     .and_then(|id| self.project.page(id))
                     .map_or_else(|| "=A1+CAB".to_string(), |p| p.structure.clone());
-                let id = self.project.add_page(&structure);
-                self.open_page(id);
+                self.current_page = Some(self.project.add_page(&structure));
             }
             _ => self.status = format!("«{}» aún no está implementado", command.label.trim_end_matches('…')),
         }
     }
 
     fn show_panel(&mut self, kind: PanelKind) {
-        let tab = Tab::Panel(kind);
-        if let Some(path) = self.dock.find_tab(&tab) {
-            let _ = self.dock.set_active_tab(path);
+        for region in Region::ALL {
+            let dock = self.docks.get_mut(region);
+            if let Some(path) = dock.find_tab(&kind) {
+                let _ = dock.set_active_tab(path);
+                return;
+            }
+        }
+        self.move_panel(kind, kind.default_region());
+    }
+
+    fn move_panel(&mut self, kind: PanelKind, region: Region) {
+        self.docks.remove(kind);
+        let dock = self.docks.get_mut(region);
+        if dock.iter_all_tabs().next().is_none() {
+            *dock = DockState::new(vec![kind]);
         } else {
-            self.dock.push_to_focused_leaf(tab);
+            dock.push_to_first_leaf(kind);
         }
     }
 
-    fn open_page(&mut self, id: PageId) {
-        self.panels.selected_page = Some(id);
-        let tab = Tab::Page(id);
-        if let Some(path) = self.dock.find_tab(&tab) {
-            let _ = self.dock.set_active_tab(path);
+    /// Página anterior/siguiente en el orden del proyecto (Re Pág / Av Pág).
+    fn step_page(&mut self, delta: isize) {
+        let pages = &self.project.pages;
+        let pos = self.current_page.and_then(|id| pages.iter().position(|p| p.id == id)).unwrap_or(0);
+        let next = (pos as isize + delta).clamp(0, pages.len() as isize - 1) as usize;
+        self.current_page = pages.get(next).map(|p| p.id);
+    }
+
+    /// Área del plano: fija, siempre en el centro, una sola página a la vez.
+    fn document_ui(&mut self, ui: &mut Ui, clicked: &mut Vec<CommandId>) {
+        let Some(page) = self.current_page.and_then(|id| self.project.page(id)) else {
+            ui.centered_and_justified(|ui| ui.weak("Selecciona una página en el navegador"));
+            self.canvas = None;
             return;
-        }
-        // Abrir junto a las demás páginas; si no hay ninguna, donde esté el foco.
-        match self.dock.find_tab_from(|t| matches!(t, Tab::Page(_))) {
-            Some(path) => {
-                self.dock.set_focused_node_and_surface(path.node_path());
-                self.dock.push_to_focused_leaf(tab);
-            }
-            None => self.dock.push_to_focused_leaf(tab),
-        }
+        };
+        egui::Frame::new().fill(theme::TITLE_BG).inner_margin(egui::Margin::symmetric(8, 3)).show(ui, |ui| {
+            ui.horizontal(|ui| {
+                if ui.small_button("◀").on_hover_text("Página anterior (Re Pág)").clicked() {
+                    clicked.push(CommandId::PaginaAnterior);
+                }
+                if ui.small_button("▶").on_hover_text("Página siguiente (Av Pág)").clicked() {
+                    clicked.push(CommandId::PaginaSiguiente);
+                }
+                ui.label(RichText::new(page.name()).strong().color(theme::TEXT_STRONG));
+                ui.label(RichText::new(&page.description).color(theme::TEXT_WEAK));
+            });
+        });
+        let view = self.views.entry(page.id).or_default();
+        self.canvas = Some(view.ui(ui, page, &self.settings));
     }
 
     fn handle_shortcuts(&mut self, ctx: &egui::Context) {
@@ -291,25 +344,50 @@ impl eframe::App for OpenEcadApp {
 
         let mut viewer = Viewer {
             project: &mut self.project,
-            views: &mut self.views,
-            settings: &self.settings,
             state: &mut self.panels,
+            current_page: &mut self.current_page,
+            region: Region::Abajo,
             actions: Vec::new(),
-            canvas: None,
         };
-        egui::CentralPanel::no_frame().show(ui, |ui| {
-            DockArea::new(&mut self.dock)
-                .style(theme::dock_style(ui.style()))
+        let dock_style = theme::dock_style(ui.style());
+        let mut show_region = |ui: &mut Ui, region: Region, dock: &mut DockState<PanelKind>| {
+            viewer.region = region;
+            DockArea::new(dock)
+                .id(egui::Id::new(("zona", region)))
+                .style(dock_style.clone())
                 .show_leaf_collapse_buttons(false)
                 .show_inside(ui, &mut viewer);
-        });
-        let Viewer { actions, canvas, .. } = viewer;
-        self.canvas = canvas;
+        };
+        let Docks { izquierda, derecha, abajo } = &mut self.docks;
+        let has_tabs = |d: &DockState<PanelKind>| d.iter_all_tabs().next().is_some();
+        if has_tabs(abajo) {
+            egui::Panel::bottom("zona_abajo")
+                .resizable(true)
+                .default_size(190.0)
+                .frame(egui::Frame::NONE)
+                .show(ui, |ui| show_region(ui, Region::Abajo, abajo));
+        }
+        if has_tabs(izquierda) {
+            egui::Panel::left("zona_izquierda")
+                .resizable(true)
+                .default_size(270.0)
+                .frame(egui::Frame::NONE)
+                .show(ui, |ui| show_region(ui, Region::Izquierda, izquierda));
+        }
+        if has_tabs(derecha) {
+            egui::Panel::right("zona_derecha")
+                .resizable(true)
+                .default_size(270.0)
+                .frame(egui::Frame::NONE)
+                .show(ui, |ui| show_region(ui, Region::Derecha, derecha));
+        }
+        let actions = viewer.actions;
+        egui::CentralPanel::no_frame().show(ui, |ui| self.document_ui(ui, &mut clicked));
 
         for action in actions {
             match action {
                 Action::Command(id) => self.execute(&ctx, id),
-                Action::OpenPage(id) => self.open_page(id),
+                Action::MoveTo(kind, region) => self.move_panel(kind, region),
                 Action::Status(s) => self.status = s,
             }
         }
@@ -334,7 +412,8 @@ impl eframe::App for OpenEcadApp {
     }
 
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        let persisted = Persisted { dock: self.dock.clone(), project: self.project.clone() };
+        let persisted =
+            Persisted { docks: self.docks.clone(), project: self.project.clone(), current_page: self.current_page };
         eframe::set_value(storage, STORAGE_KEY, &persisted);
     }
 }
@@ -344,28 +423,13 @@ fn toggle(flag: &mut bool, name: &str, status: &mut String) {
     *status = format!("{name}: {}", if *flag { "activado" } else { "desactivado" });
 }
 
-/// Disposición por defecto (MAPA-UI.md §4.1): páginas en el centro, navegación a la
-/// izquierda, inserción y propiedades a la derecha, listas abajo.
-fn default_dock(project: &Project) -> DockState<Tab> {
-    let first_pages: Vec<Tab> = project.pages.iter().skip(2).take(2).map(|p| Tab::Page(p.id)).collect();
-    let mut dock = DockState::new(first_pages);
-    let tree = dock.main_surface_mut();
-    let [center, left] = tree.split_left(NodeIndex::root(), 0.2, vec![Tab::Panel(PanelKind::Paginas)]);
-    tree.split_below(left, 0.65, vec![Tab::Panel(PanelKind::Preview)]);
-    let [center, right] = tree.split_right(
-        center,
-        0.78,
-        vec![Tab::Panel(PanelKind::Insercion), Tab::Panel(PanelKind::Macros)],
-    );
-    tree.split_below(right, 0.55, vec![Tab::Panel(PanelKind::Propiedades)]);
-    tree.split_below(
-        center,
-        0.75,
-        vec![
-            Tab::Panel(PanelKind::Mensajes),
-            Tab::Panel(PanelKind::PuntosInterrupcion),
-            Tab::Panel(PanelKind::Dispositivos),
-        ],
-    );
-    dock
+/// Disposición por defecto (MAPA-UI.md §4.1): navegación a la izquierda, inserción y
+/// propiedades a la derecha, listas abajo. El plano siempre queda en el centro.
+fn default_docks() -> Docks {
+    let mut izquierda = DockState::new(vec![PanelKind::Paginas]);
+    izquierda.main_surface_mut().split_below(NodeIndex::root(), 0.65, vec![PanelKind::Preview]);
+    let mut derecha = DockState::new(vec![PanelKind::Insercion, PanelKind::Macros]);
+    derecha.main_surface_mut().split_below(NodeIndex::root(), 0.55, vec![PanelKind::Propiedades]);
+    let abajo = DockState::new(vec![PanelKind::Mensajes, PanelKind::PuntosInterrupcion, PanelKind::Dispositivos]);
+    Docks { izquierda, derecha, abajo }
 }

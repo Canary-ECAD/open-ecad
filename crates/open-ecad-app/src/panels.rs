@@ -1,14 +1,15 @@
-//! Pestañas del dock: páginas abiertas y paneles (MAPA-UI.md §4.3).
+//! Paneles acoplables alrededor del área del plano (MAPA-UI.md §4.3).
 
 use std::collections::HashMap;
 
 use egui::{CollapsingHeader, Id, RichText, Sense, TextEdit, Ui, WidgetText};
+use egui_dock::NodePath;
 use egui_dock::TabViewer;
 use serde::{Deserialize, Serialize};
 
-use crate::canvas::{self, PageView, ViewSettings};
+use crate::canvas::{self, ViewSettings};
 use crate::commands::{CommandId, Tool, fold};
-use crate::mock::{self, PageId, Project};
+use crate::mock::{self, Project};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PanelKind {
@@ -37,23 +38,48 @@ impl PanelKind {
     }
 }
 
+/// Zonas de acoplamiento. El área del plano está en el centro y no es un panel: no se
+/// mueve ni se cierra.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum Tab {
-    Page(PageId),
-    Panel(PanelKind),
+pub enum Region {
+    Izquierda,
+    Derecha,
+    Abajo,
+}
+
+impl Region {
+    pub const ALL: [Region; 3] = [Region::Izquierda, Region::Derecha, Region::Abajo];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Region::Izquierda => "Izquierda",
+            Region::Derecha => "Derecha",
+            Region::Abajo => "Abajo",
+        }
+    }
+}
+
+impl PanelKind {
+    /// Zona donde aparece el panel en la disposición por defecto o al reabrirlo.
+    pub fn default_region(self) -> Region {
+        match self {
+            PanelKind::Paginas | PanelKind::Preview => Region::Izquierda,
+            PanelKind::Insercion | PanelKind::Macros | PanelKind::Propiedades => Region::Derecha,
+            PanelKind::Mensajes | PanelKind::PuntosInterrupcion | PanelKind::Dispositivos => Region::Abajo,
+        }
+    }
 }
 
 /// Lo que los paneles piden a la ventana; se aplica después de dibujar el dock.
 pub enum Action {
     Command(CommandId),
-    OpenPage(PageId),
+    MoveTo(PanelKind, Region),
     Status(String),
 }
 
 /// Estado de interfaz de los paneles (filtros, modo árbol/lista...).
 #[derive(Default)]
 pub struct PanelsState {
-    pub selected_page: Option<PageId>,
     navigators: HashMap<PanelKind, NavigatorState>,
     insertion_macros: bool,
     insertion_selected: Option<&'static str>,
@@ -68,73 +94,57 @@ struct NavigatorState {
 /// Datos que necesitan las pestañas mientras se dibuja el dock.
 pub struct Viewer<'a> {
     pub project: &'a mut Project,
-    pub views: &'a mut HashMap<PageId, PageView>,
-    pub settings: &'a ViewSettings,
     pub state: &'a mut PanelsState,
+    /// Página mostrada en el área del plano. Un clic en el navegador la sustituye.
+    pub current_page: &'a mut Option<mock::PageId>,
+    /// Zona que se está dibujando (para el menú «Mover a»).
+    pub region: Region,
     pub actions: Vec<Action>,
-    pub canvas: Option<canvas::CanvasOutput>,
 }
 
 impl TabViewer for Viewer<'_> {
-    type Tab = Tab;
+    type Tab = PanelKind;
 
-    fn title(&mut self, tab: &mut Tab) -> WidgetText {
-        match tab {
-            Tab::Page(id) => self.project.page(*id).map(|p| p.name()).unwrap_or_else(|| "?".into()).into(),
-            Tab::Panel(kind) => kind.title().into(),
-        }
+    fn title(&mut self, tab: &mut PanelKind) -> WidgetText {
+        tab.title().into()
     }
 
-    fn id(&mut self, tab: &mut Tab) -> Id {
-        Id::new(*tab)
+    fn id(&mut self, tab: &mut PanelKind) -> Id {
+        Id::new(("panel", *tab))
     }
 
-    fn ui(&mut self, ui: &mut Ui, tab: &mut Tab) {
+    fn ui(&mut self, ui: &mut Ui, tab: &mut PanelKind) {
         match *tab {
-            Tab::Page(id) => self.page_ui(ui, id),
-            Tab::Panel(kind) => match kind {
-                PanelKind::Paginas => self.pages_ui(ui),
-                PanelKind::Preview => self.preview_ui(ui),
-                PanelKind::Insercion => self.insertion_ui(ui),
-                PanelKind::Propiedades => self.properties_ui(ui),
-                PanelKind::Mensajes => messages_ui(ui),
-                PanelKind::PuntosInterrupcion => self.interruptions_ui(ui),
-                PanelKind::Dispositivos => self.devices_ui(ui),
-                PanelKind::Macros => self.macros_ui(ui),
-            },
+            PanelKind::Paginas => self.pages_ui(ui),
+            PanelKind::Preview => self.preview_ui(ui),
+            PanelKind::Insercion => self.insertion_ui(ui),
+            PanelKind::Propiedades => self.properties_ui(ui),
+            PanelKind::Mensajes => messages_ui(ui),
+            PanelKind::PuntosInterrupcion => self.interruptions_ui(ui),
+            PanelKind::Dispositivos => self.devices_ui(ui),
+            PanelKind::Macros => self.macros_ui(ui),
         }
     }
 
-    fn scroll_bars(&self, tab: &Tab) -> [bool; 2] {
+    fn context_menu(&mut self, ui: &mut Ui, tab: &mut PanelKind, _path: NodePath) {
+        ui.menu_button("Mover a", |ui| {
+            for region in Region::ALL.into_iter().filter(|r| *r != self.region) {
+                if ui.button(region.label()).clicked() {
+                    self.actions.push(Action::MoveTo(*tab, region));
+                }
+            }
+        });
+    }
+
+    fn scroll_bars(&self, tab: &PanelKind) -> [bool; 2] {
         match tab {
-            Tab::Page(_) | Tab::Panel(PanelKind::Preview) => [false, false],
-            Tab::Panel(_) => [true, true],
-        }
-    }
-
-    fn on_tab_button(&mut self, tab: &mut Tab, response: &egui::Response) {
-        if let Tab::Page(id) = tab
-            && response.clicked()
-        {
-            self.state.selected_page = Some(*id);
+            PanelKind::Preview => [false, false],
+            _ => [true, true],
         }
     }
 }
 
 impl Viewer<'_> {
-    fn page_ui(&mut self, ui: &mut Ui, id: PageId) {
-        let Some(page) = self.project.page(id) else {
-            ui.label("Página no encontrada");
-            return;
-        };
-        let view = self.views.entry(id).or_default();
-        let out = view.ui(ui, page, self.settings);
-        // Solo la página bajo el ratón informa a la barra de estado.
-        if out.cursor_mm.is_some() || self.canvas.is_none() {
-            self.canvas = Some(out);
-        }
-    }
-
     fn pages_ui(&mut self, ui: &mut Ui) {
         let nav = self.state.navigators.entry(PanelKind::Paginas).or_default();
         navigator_header(ui, nav);
@@ -148,15 +158,10 @@ impl Viewer<'_> {
             .collect();
 
         let mut clicked = None;
-        let mut opened = None;
-        let mut row = |ui: &mut Ui, label: String, id: PageId| {
-            let selected = self.state.selected_page == Some(id);
-            let r = ui.selectable_label(selected, label);
-            if r.clicked() {
+        let current = *self.current_page;
+        let mut row = |ui: &mut Ui, label: String, id: mock::PageId| {
+            if ui.selectable_label(current == Some(id), label).clicked() {
                 clicked = Some(id);
-            }
-            if r.double_clicked() {
-                opened = Some(id);
             }
         };
 
@@ -190,10 +195,7 @@ impl Viewer<'_> {
         }
 
         if let Some(id) = clicked {
-            self.state.selected_page = Some(id);
-        }
-        if let Some(id) = opened {
-            self.actions.push(Action::OpenPage(id));
+            *self.current_page = Some(id);
         }
         ui.add_space(6.0);
         if ui.small_button("+ Nueva página").clicked() {
@@ -202,7 +204,7 @@ impl Viewer<'_> {
     }
 
     fn preview_ui(&mut self, ui: &mut Ui) {
-        let Some(page) = self.state.selected_page.and_then(|id| self.project.page(id)) else {
+        let Some(page) = self.current_page.and_then(|id| self.project.page(id)) else {
             ui.weak("Selecciona una página en el navegador.");
             return;
         };
@@ -258,7 +260,7 @@ impl Viewer<'_> {
     }
 
     fn properties_ui(&mut self, ui: &mut Ui) {
-        let Some(page) = self.state.selected_page.and_then(|id| self.project.page_mut(id)) else {
+        let Some(page) = self.current_page.and_then(|id| self.project.page_mut(id)) else {
             ui.weak("Nada seleccionado.");
             return;
         };
