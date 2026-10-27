@@ -1,8 +1,12 @@
 [workspace]
-resolver = "2"
-members = ["crates/open-ecad-core"]
+resolver = "3"
+members = ["crates/*"]
 
 [workspace.package]
-edition = "2021"
+edition = "2024"
+rust-version = "1.92"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Canary-ECAD/open-ecad"
+
+[workspace.dependencies]
+open-ecad-core = { path = "crates/open-ecad-core" }

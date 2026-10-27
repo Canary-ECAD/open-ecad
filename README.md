@@ -26,6 +26,9 @@ without their noise: fewer dialogs, fewer configuration layers, the same enginee
 roadmap)*. The Rust workspace compiles and CI is green from day one — the core crate is a
 scaffold waiting for the domain types.
 
+The user interface is mapped in [`MAPA-UI.md`](MAPA-UI.md) *(Spanish)*: what a working
+designer actually uses, what gets merged or dropped, and the v1 window skeleton.
+
 ## Why "open-box"?
 
 Because you can audit the method, not just the code:
@@ -49,13 +52,34 @@ Because you can audit the method, not just the code:
 ```
 crates/
   open-ecad-core/      # domain model — GUI-agnostic crate
+  open-ecad-app/       # desktop app (egui) — window prototype, mock data
 .github/
   ISSUE_TEMPLATE/      # bug & feature forms
   workflows/ci.yml     # fmt · clippy · test
 MAPA-DOMINIO.md        # clean-room domain map (design spec)
+MAPA-UI.md             # UI map: real-world usage, verdicts, v1 skeleton
 CONTRIBUTING.md        # how to help + the clean-room pledge
 CODE_OF_CONDUCT.md     # Contributor Covenant 2.1
 ```
+
+## Window prototype
+
+`crates/open-ecad-app` is the v1 UI skeleton (MAPA-UI.md §4) running on mock data, with no
+domain model yet:
+
+```
+cargo run -p open-ecad-app
+```
+
+- CAD-style ribbon (tabs, named groups, large/small buttons), shortcuts and a command
+  palette (`Ctrl+K`), all generated from a single command registry. Greyed-out commands
+  have a place in the UI but do nothing yet.
+- The drawing area is fixed in the centre and shows one page at a time; clicking a page in
+  the navigator replaces it (`PgUp` / `PgDn` for previous/next).
+- Dockable panels in three zones (left, right, bottom): drag and stack within a zone;
+  right-click a tab → *Mover a* to change zone. The layout is remembered on exit.
+- Canvas: wheel = zoom at cursor, middle or right drag = pan, `Home` = fit page,
+  `F7` grid, `F9` snap.
 
 ## Planned stack
 

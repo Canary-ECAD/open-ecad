@@ -5,7 +5,6 @@ imagenes/
 
 # Rust
 /target
-Cargo.lock
 
 # Editors & OS cruft
 .idea/

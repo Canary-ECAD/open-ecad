@@ -1,0 +1,17 @@
+[package]
+name = "open-ecad-app"
+version = "0.0.1"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "open-ecad"
+path = "src/main.rs"
+
+[dependencies]
+open-ecad-core.workspace = true
+eframe = { version = "=0.35.0", default-features = false, features = ["default_fonts", "glow", "persistence", "wayland", "x11"] }
+egui = "=0.35.0"
+egui_dock = { version = "=0.20.1", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
